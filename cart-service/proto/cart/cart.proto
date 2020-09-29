@@ -1,0 +1,26 @@
+// cart-service/proto/cart/cart.proto
+
+syntax = "proto3";
+
+package cart;
+
+option go_package = "proto/cart";
+
+service CartService{
+	rpc AddToCart(AddToCartRequest) returns (AddToCartResponse){}
+}
+
+message Cart{
+	string id = 1;
+	string user_id = 2;
+	repeated string products_ids = 3;
+}
+
+message AddToCartRequest{
+	string cart_id = 1;
+	string product_id = 2;
+}
+
+message AddToCartResponse{
+	bool added = 1;
+}

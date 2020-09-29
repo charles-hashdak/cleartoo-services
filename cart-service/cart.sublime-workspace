@@ -1,0 +1,239 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"Ge",
+				"GetProductsRequest"
+			],
+			[
+				"Create",
+				"CreateProduct"
+			],
+			[
+				"err",
+				"error"
+			],
+			[
+				"response",
+				"ResponseWriter"
+			],
+			[
+				"m",
+				"map"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"Package Control: ",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/home/char1/go/src/github.com/charles-hashdak/cleartoo-services/cart-service"
+	],
+	"file_history":
+	[
+		"/home/char1/protoc3/readme.txt",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/models/catalog/catalog.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/Readme.md",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/main.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog/updateProduct.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog/service.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog/readProduct.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog/listProducts.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog/addProduct.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog/deleteProduct.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/docker-compose.yml",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/go.mod",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/protos/entity.pb.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/protos/catalog/catalog_grpc.pb.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/protos/catalog/catalog.proto",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/protos/entity.proto",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/envoy-proxy.yaml",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/protos/catalog/catalog.pb.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/protos/catalog-proto/catalog.proto",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog-srv/addProduct.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog-srv/deleteProduct.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog-srv/listProducts.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog-srv/readProduct.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog-srv/service.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/cleartoo-services/services/catalog-srv/updateProduct.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/main.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/services/catalog/service.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/services/catalog/updateProduct.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/protos/catalog/catalog.proto",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/rest.http",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/services/catalog/service.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/models/catalog/catalog.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/protos/entity.proto",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/services/catalog/updateProduct.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/services/catalog/readProduct.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/services/catalog/addProduct.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/services/catalog/deleteProduct.go",
+		"/home/char1/cleartoo-final/src/github.com/charles-hashdak/services/catalog/listProducts.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/go.mod",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/main.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/clients/main.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/gateway/main.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/services/createEntity.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/services/deleteEntity.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/services/listEntity.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/services/readEntity.go",
+		"/home/char1/cleartoo-final/github.com/charles-hashdak/services/updateEntity.go"
+	],
+	"find":
+	{
+		"height": 22.0
+	},
+	"find_in_files":
+	{
+		"height": 98.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": true,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 22.0
+	},
+	"input":
+	{
+		"height": 34.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "cart.sublime-project",
+	"replace":
+	{
+		"height": 40.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": true,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 283.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
