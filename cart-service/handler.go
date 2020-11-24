@@ -27,12 +27,7 @@ func (s *handler) CreateCart(ctx context.Context, req *pb.GetRequest, res *pb.Ad
 }
 
 func (s *handler) AddToCart(ctx context.Context, req *pb.AddToCartRequest, res *pb.AddToCartResponse) error {
-	fmt.Println("reqh")
-	fmt.Println(req)
-
 	err := s.repository.AddToCart(ctx, MarshalAddToCartRequest(req))
-	fmt.Println("err")
-	fmt.Println(err)
 
 	if err != nil{
 		return nil
@@ -62,5 +57,17 @@ func (s *handler) GetCart(ctx context.Context, req *pb.GetRequest, res *pb.GetRe
 		return err
 	}
 	res.Cart = UnmarshalCart(cart)
+	return nil
+}
+
+func (s *handler) IsInCart(ctx context.Context, req *pb.IsInCartRequest, res *pb.IsInCartResponse) error {
+	isincart, err := s.repository.IsInCart(ctx, MarshalIsInCartRequest(req))
+
+	if err != nil{
+		return nil
+	}
+
+	res.IsInCart = isincart
+
 	return nil
 }

@@ -78,6 +78,15 @@ type GetResponse struct {
 	Cart 			Cart
 }
 
+type IsInCartRequest struct {
+	UserID 			string
+	ProductID 		string
+}
+
+type IsInCartResponse struct {
+	IsInCart 		bool
+}
+
 func MarshalAddToCartRequest(req *pb.AddToCartRequest) *AddToCartRequest{
 	return &AddToCartRequest{
 		UserID: 		req.UserId,
@@ -89,18 +98,6 @@ func UnmarshalAddToCartRequest(req *AddToCartRequest) *pb.AddToCartRequest{
 	return &pb.AddToCartRequest{
 		UserId: 		req.UserID,
 		Product: 		UnmarshalProduct(&req.Product),
-	}
-}
-
-func MarshalAddToCartResponse(req *pb.AddToCartResponse) *AddToCartResponse{
-	return &AddToCartResponse{
-		Added: 			req.Added,
-	}
-}
-
-func UnmarshalAddToCartResponse(req *AddToCartResponse) *pb.AddToCartResponse{
-	return &pb.AddToCartResponse{
-		Added: 			req.Added,
 	}
 }
 
@@ -118,18 +115,6 @@ func UnmarshalDeleteFromCartRequest(req *DeleteFromCartRequest) *pb.DeleteFromCa
 	}
 }
 
-func MarshalDeleteFromCartResponse(req *pb.DeleteFromCartResponse) *DeleteFromCartResponse{
-	return &DeleteFromCartResponse{
-		Deleted: 			req.Deleted,
-	}
-}
-
-func UnmarshalDeleteFromCartResponse(req *DeleteFromCartResponse) *pb.DeleteFromCartResponse{
-	return &pb.DeleteFromCartResponse{
-		Deleted: 			req.Deleted,
-	}
-}
-
 func MarshalGetRequest(req *pb.GetRequest) *GetRequest{
 	return &GetRequest{
 		UserID: 		req.UserId,
@@ -142,15 +127,17 @@ func UnmarshalGetRequest(req *GetRequest) *pb.GetRequest{
 	}
 }
 
-func MarshalGetResponse(req *pb.GetResponse) *GetResponse{
-	return &GetResponse{
-		Cart: 			*MarshalCart(req.Cart),
+func MarshalIsInCartRequest(req *pb.IsInCartRequest) *IsInCartRequest{
+	return &IsInCartRequest{
+		UserID: 		req.UserId,
+		ProductID: 		req.ProductId,
 	}
 }
 
-func UnmarshalGetResponse(req *GetResponse) *pb.GetResponse{
-	return &pb.GetResponse{
-		Cart: 			UnmarshalCart(&req.Cart),
+func UnmarshalIsInCartRequest(req *IsInCartRequest) *pb.IsInCartRequest{
+	return &pb.IsInCartRequest{
+		UserId: 		req.UserID,
+		ProductId: 		req.ProductID,
 	}
 }
 
@@ -279,6 +266,7 @@ type repository interface{
 	AddToCart(ctx context.Context, req *AddToCartRequest) error
 	DeleteFromCart(ctx context.Context, req *DeleteFromCartRequest) error
 	GetCart(ctx context.Context, req *GetRequest) (*Cart, error)
+	IsInCart(ctx context.Context, req *IsInCartRequest) (bool, error)
 }
 
 type MongoRepository struct{
@@ -332,4 +320,14 @@ func (repo *MongoRepository) CreateCart(ctx context.Context, req *GetRequest) er
 	cart.Products = make(Products, 0)
 	_, err := repo.cartCollection.InsertOne(ctx, cart)
 	return err
+}
+
+func (repo *MongoRepository) IsInCart(ctx context.Context, req *IsInCartRequest) (bool, error){
+	bsonFilters := bson.D{}
+	bsonFilters = append(bsonFilters, bson.E{"user_id", bson.D{bson.E{"$eq", req.UserID}}})
+	bsonFilters = append(bsonFilters, bson.E{"products.id", bson.D{bson.E{"$matchElement", req.ProductID}}})
+	if count, err := repo.cartCollection.CountDocuments(ctx, bsonFilters); err != nil {
+		return nil, err
+	}
+	return count, nil
 }
