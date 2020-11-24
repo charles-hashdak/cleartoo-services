@@ -55,6 +55,7 @@ message Product{
 	string updated_at = 20;
 	int32 view_count = 21;
 	bool wished = 22;
+	bool in_cart = 23;
 }
 
 message Category{

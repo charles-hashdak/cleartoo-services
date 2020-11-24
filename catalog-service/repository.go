@@ -189,6 +189,7 @@ func UnmarshalProduct(product *Product, userId string) *pb.Product{
 		UpdatedAt:		product.UpdatedAt,
 		ViewCount:		product.ViewCount,
 		Wished:			wished,
+		InCart:			product.InCart ? product.InCart : false,
 	}
 }
 
