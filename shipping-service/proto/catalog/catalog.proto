@@ -1,0 +1,181 @@
+// catalog-service/proto/catalog/catalog.proto
+
+syntax = "proto3";
+
+package catalog;
+
+option go_package = "proto/catalog";
+
+service CatalogService{
+	rpc CreateProduct(Product) returns (CreateProductResponse){}
+
+	rpc GetProducts(GetRequest) returns (GetProductsResponse){}
+
+	rpc GetProduct(GetRequest) returns (Product){}
+
+	rpc Wish(GetRequest) returns (WishResponse){}
+
+	rpc GetWishes(GetRequest) returns (GetProductsResponse){}
+
+	rpc GetSizes(GetRequest) returns (GetSizesResponse){}
+
+	rpc GetCategories(GetRequest) returns (GetCategoriesResponse){}
+
+	rpc GetBrands(Request) returns (GetBrandsResponse){}
+
+	rpc GetColors(Request) returns (GetColorsResponse){}
+
+	rpc GetConditions(Request) returns (GetConditionsResponse){}
+
+	rpc GetAddProductData(Request) returns (GetAddProductDataResponse){}
+}
+
+message Request {}
+
+message Product{
+	string id = 1;
+	bool disponible = 2;
+	string title = 3;
+	string description = 4;
+	int32 price = 5;
+	repeated Photo photos = 6;
+	Category category = 7;
+	string size = 8;
+	Color color1 = 9;
+	Color color2 = 10;
+	string brand = 11;
+	string condition = 12;
+	string material = 13;
+	Owner owner = 14;
+	repeated string wishers = 15;
+	int32 wishlist_count = 16;
+	string country = 17;
+	string city = 18;
+	string created_at = 19;
+	string updated_at = 20;
+	int32 view_count = 21;
+	bool wished = 22;
+}
+
+message Category{
+	string id = 1;
+	string name = 2;
+	string parent_id = 3;
+	repeated Size sizes = 4;
+}
+
+message Owner{
+	string owner_id = 1;
+	string username = 2;
+	string rating = 3;
+	Photo avatar = 4;
+}
+
+message Size{
+	string id = 1;
+	string name = 2;
+}
+
+message Photo{
+	string id = 1;
+	string url = 2;
+	bool is_main = 3;
+	int32 height = 4;
+	int32 width = 5;
+	repeated Thumbnail thumbnails = 6;
+}
+
+message Thumbnail{
+	string id = 1;
+	string url = 2;
+	int32 height = 3;
+	int32 width = 4;
+}
+
+message Color{
+	string id = 1;
+	string name = 2;
+	string hex_code = 3;
+	string image = 4;
+}
+
+message Brand{
+	string id = 1;
+	string name = 2;
+}
+
+message Condition{
+	string id = 1;
+	string name = 2;
+}
+
+message Material{
+	string id = 1;
+	string name = 2;
+}
+
+message Country{
+	string id = 1;
+	string name = 2;
+}
+
+message City{
+	string id = 1;
+	string name = 2;
+	string country_id = 3;
+}
+
+message CreateProductResponse{
+	bool created = 1;
+	Product product = 2;
+}
+
+message WishResponse{
+	bool wished = 1;
+}
+
+message GetRequest{
+	repeated Filter filters = 1;
+	string user_id = 2;
+	string product_id = 3;
+	bool wished = 4;
+}
+
+message Filter{
+	string key = 1;
+	string value = 2;
+	string condition = 3;
+	bool hex = 4;
+}
+
+message GetProductsResponse{
+	repeated Product products = 1;
+}
+
+message GetSizesResponse{
+	repeated Size sizes = 1;
+}
+
+message GetCategoriesResponse{
+	repeated Category categories = 1;
+}
+
+message GetBrandsResponse{
+	repeated Brand brands = 1;
+}
+
+message GetColorsResponse{
+	repeated Color colors = 1;
+}
+
+message GetConditionsResponse{
+	repeated Condition conditions = 1;
+}
+
+message GetAddProductDataResponse{
+	repeated Brand brands = 1;
+	repeated Condition conditions = 2;
+	repeated Color colors = 3;
+	repeated Category genders = 4;
+	repeated Material materials = 5;
+}

@@ -6,12 +6,13 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+    "go.mongodb.org/mongo-driver/mongo/readpref"
 	"time"
 )
 
 func CreateClient(ctx context.Context, uri string, retry int32) (*mongo.Client, error) {
 	conn, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
-	if err := conn.Ping(ctx, nil); err != nil {
+	if err := conn.Ping(ctx, readpref.Primary()); err != nil {
 		if retry >= 3 {
 			return nil, err
 		}

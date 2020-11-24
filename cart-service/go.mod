@@ -2,6 +2,11 @@ module github.com/charles-hashdak/cleartoo-services/cart-service
 
 go 1.14
 
+replace (
+	google.golang.org/grpc => google.golang.org/grpc v1.27.0
+	github.com/coreos/etcd => github.com/ozonru/etcd v3.3.20-grpc1.27-origmodule+incompatible
+)
+
 require (
 	github.com/coreos/etcd v3.3.25+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
@@ -24,7 +29,7 @@ require (
 	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/tools v0.0.0-20200915173823-2db8f0ff891c // indirect
 	google.golang.org/genproto v0.0.0-20200914193844-75d14daec038 // indirect
-	google.golang.org/grpc v1.32.0 // indirect
+	google.golang.org/grpc v1.30.0 // indirect
 	google.golang.org/protobuf v1.25.0
 	honnef.co/go/tools v0.0.1-2020.1.5 // indirect
 )

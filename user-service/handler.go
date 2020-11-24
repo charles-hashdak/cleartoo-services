@@ -1,88 +1,136 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"errors"
 	"log"
+	"context"
+	"strings"
+	"strconv"
+	"math/rand"
 
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
+	micro "github.com/micro/go-micro/v2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type authable interface {
+type Authable interface {
 	Decode(token string) (*CustomClaims, error)
-	Encode(user *pb.User) (string, error)
+	Encode(user *pb.User) (string, string, error)
+	EncodeRefreshToken(user *pb.User) (string, error)
 }
 
-type handler struct {
-	repository   Repository
-	tokenService authable
+type service struct {
+	repo   			Repository
+	tokenService 	Authable
+	Publisher    	micro.Publisher
 }
 
-func (s *handler) Get(ctx context.Context, req *pb.User, res *pb.Response) error {
-	result, err := s.repository.Get(ctx, req.Id)
+func (srv *service) Get(ctx context.Context, req *pb.User, res *pb.Response) error {
+	user, err := srv.repo.Get(req.Id)
 	if err != nil {
 		return err
 	}
-
-	user := UnmarshalUser(result)
 	res.User = user
-
 	return nil
 }
 
-func (s *handler) GetAll(ctx context.Context, req *pb.Request, res *pb.Response) error {
-	results, err := s.repository.GetAll(ctx)
+func (srv *service) GetAll(ctx context.Context, req *pb.Request, res *pb.Response) error {
+	users, err := srv.repo.GetAll()
 	if err != nil {
 		return err
 	}
-
-	users := UnmarshalUserCollection(results)
 	res.Users = users
-
 	return nil
 }
 
-func (s *handler) Auth(ctx context.Context, req *pb.User, res *pb.Token) error {
-	user, err := s.repository.GetByEmail(ctx, req.Email)
+func (srv *service) Auth(ctx context.Context, req *pb.User, res *pb.Response) error {
+    _, ok := metadata.FromIncomingContext(ctx)
+    if !ok {
+        return status.Errorf(codes.DataLoss, "Failed to get metadata")
+    }
+	user, err := srv.repo.GetByEmail(req.Email)
 	if err != nil {
 		return err
 	}
 
+	// Compares our given password against the hashed password
+	// stored in the database
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		return err
 	}
 
-	token, err := s.tokenService.Encode(req)
+	token, refreshToken, err := srv.tokenService.Encode(user)
 	if err != nil {
 		return err
 	}
-
-	res.Token = token
+	header := metadata.Pairs("Set-Cookie", "refresh-jwt="+refreshToken+"; Max-Age=5256000; SameSite=none", "Access-Control-Allow-Methods", "POST")
+	if err := grpc.SetHeader(ctx, header); err != nil {
+		log.Println(err)
+		return status.Errorf(codes.Internal, "unable to send 'Set-Cookie' header")
+	}
+	if err := grpc.SendHeader(ctx, header); err != nil {
+		log.Println(err)
+		return status.Errorf(codes.Internal, "unable to send 'Set-Cookie' header")
+	}
+	user.Password = "";
+	res.Token = new(pb.Token)
+	res.Token.Token = token
+	res.User = user
 	return nil
 }
 
-func (s *handler) Create(ctx context.Context, req *pb.User, res *pb.Response) error {
-	log.Println("user:", req)
+func (srv *service) Create(ctx context.Context, req *pb.User, res *pb.Response) error {
+
+	log.Println("Creating user: ", req)
+
+	var usernameId = 1000 + rand.Intn(9999-1000)
+	req.Username = strings.Split(req.Email, string('@'))[0] + strconv.Itoa(usernameId)
+	req.Rating = 0;
+	req.FollowersCount = 0;
+	req.FollowingCount = 0;
+
+	// Generates a hashed version of our password
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("error hashing password: %v", err))
 	}
 
 	req.Password = string(hashedPass)
-	if err := s.repository.Create(ctx, MarshalUser(req)); err != nil {
-		return err
+	if err := srv.repo.Create(req); err != nil {
+		return errors.New(fmt.Sprintf("error creating user: %v", err))
 	}
 
-	// Strip the password back out, so's we're not returning it
-	req.Password = ""
+	token, refreshToken, err := srv.tokenService.Encode(req)
+	if err != nil {
+		return err
+	}
+	header := metadata.New(map[string]string{"Set-Cookie": "refresh-jwt="+refreshToken+"; Max-Age=5256000; SameSite=none"})
+	if err := grpc.SendHeader(ctx, header); err != nil {
+		return status.Errorf(codes.Internal, "unable to send 'Set-Cookie' header")
+	}
+
+	req.Password = "";
 	res.User = req
+	res.Token = &pb.Token{Token: token}
+
+	/*
+		if err := srv.Publisher.Publish(ctx, req); err != nil {
+			return errors.New(fmt.Sprintf("error publishing event: %v", err))
+		}*/
 
 	return nil
 }
 
-func (s *handler) ValidateToken(ctx context.Context, req *pb.Token, res *pb.Token) error {
-	claims, err := s.tokenService.Decode(req.Token)
+func (srv *service) ValidateToken(ctx context.Context, req *pb.Token, res *pb.Token) error {
+
+	// Decode token
+	claims, err := srv.tokenService.Decode(req.Token)
+
 	if err != nil {
 		return err
 	}
@@ -92,5 +140,6 @@ func (s *handler) ValidateToken(ctx context.Context, req *pb.Token, res *pb.Toke
 	}
 
 	res.Valid = true
+
 	return nil
 }
