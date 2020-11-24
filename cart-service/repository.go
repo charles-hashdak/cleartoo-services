@@ -323,11 +323,14 @@ func (repo *MongoRepository) CreateCart(ctx context.Context, req *GetRequest) er
 }
 
 func (repo *MongoRepository) IsInCart(ctx context.Context, req *IsInCartRequest) (bool, error){
+	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
 	bsonFilters := bson.D{}
 	bsonFilters = append(bsonFilters, bson.E{"user_id", bson.D{bson.E{"$eq", req.UserID}}})
-	bsonFilters = append(bsonFilters, bson.E{"products.id", bson.D{bson.E{"$matchElement", req.ProductID}}})
-	if count, err := repo.cartCollection.CountDocuments(ctx, bsonFilters); err != nil {
-		return nil, err
+	bsonFilters = append(bsonFilters, bson.E{"products.id", bson.D{bson.E{"$matchElement", productId}}})
+	count, err := repo.cartCollection.CountDocuments(ctx, bsonFilters)
+	if err != nil {
+		return false, err
 	}
-	return count, nil
+	inCart := count > 0
+	return inCart, nil
 }
