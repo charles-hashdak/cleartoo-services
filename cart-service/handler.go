@@ -4,7 +4,7 @@ package main
 
 import(
 	"context"
-	"fmt"
+	_ "fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
 )
