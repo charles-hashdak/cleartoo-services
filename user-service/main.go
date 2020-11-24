@@ -5,6 +5,7 @@ import (
 
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"github.com/micro/go-micro/v2"
+	_ "github.com/asim/nitro-plugins/registry/mdns"
 )
 
 const schema = `
@@ -12,8 +13,30 @@ const schema = `
 		id varchar(36) not null,
 		name varchar(125) not null,
 		email varchar(225) not null unique,
+		username varchar(225) not null unique,
 		password varchar(225) not null,
 		company varchar(125),
+		description text,
+		rating float(8) not null,
+		avatar_url varchar(225),
+		cover_url varchar(225),
+		followers_count int,
+		following_count int,
+		primary key (id)
+	);
+
+	create table if not exists followers (
+		id varchar(36) not null,
+		follower_id varchar(36) not null,
+		user_id varchar(36) not null,
+		primary key (id)
+	);
+	
+	create table if not exists ratings (
+		id varchar(36) not null,
+		rater_id varchar(36) not null,
+		user_id varchar(36) not null,
+		rate float(8) not null,
 		primary key (id)
 	);
 `
@@ -36,28 +59,29 @@ func main() {
 	// Run schema query on start-up, as we're using "create if not exists"
 	// this will only be ran once. In order to create updates, you'll need to
 	// use a migrations library
-	db.MustExec(schema)
+	db.AutoMigrate(&pb.User{})
 
-	repo := NewPostgresRepository(db)
+	repo := &UserRepository{db}
 
 	tokenService := &TokenService{repo}
 
 	// Create a new service. Optionally include some options here.
-	service := micro.NewService(
-		micro.Name("cleartoo.service.user"),
-		micro.Version("latest"),
+	srv := micro.NewService(
+		micro.Name("cleartoo.user"),
 	)
 
 	// Init will parse the command line flags.
-	service.Init()
+	srv.Init()
+
+	publisher := micro.NewPublisher("user.created", srv.Client())
 
 	// Register handler
-	if err := pb.RegisterUserServiceHandler(service.Server(), &handler{repo, tokenService}); err != nil {
+	if err := pb.RegisterUserServiceHandler(srv.Server(), &service{repo, tokenService, publisher}); err != nil {
 		log.Panic(err)
 	}
 
 	// Run the server
-	if err := service.Run(); err != nil {
+	if err := srv.Run(); err != nil {
 		log.Panic(err)
 	}
 }

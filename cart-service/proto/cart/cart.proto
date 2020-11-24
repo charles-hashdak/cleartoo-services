@@ -7,20 +7,70 @@ package cart;
 option go_package = "proto/cart";
 
 service CartService{
+	rpc CreateCart(GetRequest) returns (AddToCartResponse){}
 	rpc AddToCart(AddToCartRequest) returns (AddToCartResponse){}
+	rpc DeleteFromCart(DeleteFromCartRequest) returns (DeleteFromCartResponse){}
+	rpc GetCart(GetRequest) returns (GetResponse){}
 }
 
 message Cart{
 	string id = 1;
 	string user_id = 2;
-	repeated string products_ids = 3;
+	repeated Product products = 3;
+}
+
+message Product{
+	string id = 1;
+	bool disponible = 2;
+	string title = 3;
+	int32 price = 4;
+	Photo photo = 5;
+	string category = 6;
+	string size = 7;
+	Color color1 = 8;
+	Color color2 = 9;
+	string brand = 10;
+	string condition = 11;
+	string material = 12;
+}
+
+message Photo{
+	string id = 1;
+	string url = 2;
+	bool is_main = 3;
+	int32 height = 4;
+	int32 width = 5;
+}
+
+message Color{
+	string id = 1;
+	string name = 2;
+	string hex_code = 3;
+	string image = 4;
 }
 
 message AddToCartRequest{
-	string cart_id = 1;
-	string product_id = 2;
+	string user_id = 1;
+	Product product = 2;
 }
 
 message AddToCartResponse{
 	bool added = 1;
+}
+
+message DeleteFromCartRequest{
+	string user_id = 1;
+	Product product = 2;
+}
+
+message DeleteFromCartResponse{
+	bool deleted = 1;
+}
+
+message GetRequest{
+	string user_id = 1;
+}
+
+message GetResponse{
+	Cart cart = 1;
 }

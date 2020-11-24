@@ -4,59 +4,43 @@ package main
 
 import(
 	"context"
+	"fmt"
 	"log"
+	"os"
 
 	pb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
 	"github.com/micro/go-micro/v2"
+	_ "github.com/asim/nitro-plugins/registry/mdns"
 )
-
-type repository interface{
-	AddToCart(*pb.AddToCartRequest) (*pb.AddToCartRequest, error)
-}
-
-type Repository struct{
-	mu			sync.RWMutex
-	items		[]*pb.AddToCartRequest
-}
-
-func (repo *Repository) AddToCart(req *pb.AddToCartRequest) (*pb.AddToCartRequest, error){
-	repo.mu.Lock()
-	updated := append(repo.items, req)
-	repo.items = updated
-	repo.mu.Unlock()
-	return req, nil
-}
-
-type service struct{
-	repo repository
-}
-
-func (s *service) AddToCart(ctx context.Context, req *pb.AddToCartRequest) (*pb.AddToCartResponse, error){
-
-	item, err := s.repo.AddToCart(req)
-
-	if err != nil{
-		return nil, err
-	}
-
-	return &pb.AddToCartResponse{Added: true}, nil
-}
 
 func main(){
 
-	repo := &Repository{}
-
 	service := micro.NewService(
-		micro.Name("cleartoo.service.cart"),
+		micro.Name("cleartoo.cart"),
+		micro.Version("latest"),
 	)
 
 	service.Init()
 
-	if err := pb.RegisterCartServiceHandler(service.Server(), &cartService{repo}); err != nil{
+	uri := os.Getenv("DB_HOST")
+
+	client, err := CreateClient(context.Background(), uri, 0)
+	if err != nil {
 		log.Panic(err)
+	}
+	defer client.Disconnect(context.Background())
+
+	cartCollection := client.Database("cleartoo").Collection("cart")
+
+	repository := &MongoRepository{cartCollection}
+
+	h := &handler{repository}
+
+	if err := pb.RegisterCartServiceHandler(service.Server(), h); err != nil{
+		fmt.Println(err)
 	}
 
 	if err := service.Run(); err != nil{
-		log.Panic(err)
+		fmt.Println(err)
 	}
 }

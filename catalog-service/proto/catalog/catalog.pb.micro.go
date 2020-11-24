@@ -43,7 +43,12 @@ func NewCatalogServiceEndpoints() []*api.Endpoint {
 
 type CatalogService interface {
 	CreateProduct(ctx context.Context, in *Product, opts ...client.CallOption) (*CreateProductResponse, error)
-	GetProducts(ctx context.Context, in *GetProductsRequest, opts ...client.CallOption) (*GetProductsResponse, error)
+	GetProducts(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetProductsResponse, error)
+	GetSizes(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetSizesResponse, error)
+	GetCategories(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetCategoriesResponse, error)
+	GetBrands(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetBrandsResponse, error)
+	GetColors(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetColorsResponse, error)
+	GetConditions(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetConditionsResponse, error)
 }
 
 type catalogService struct {
@@ -68,9 +73,59 @@ func (c *catalogService) CreateProduct(ctx context.Context, in *Product, opts ..
 	return out, nil
 }
 
-func (c *catalogService) GetProducts(ctx context.Context, in *GetProductsRequest, opts ...client.CallOption) (*GetProductsResponse, error) {
+func (c *catalogService) GetProducts(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetProductsResponse, error) {
 	req := c.c.NewRequest(c.name, "CatalogService.GetProducts", in)
 	out := new(GetProductsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogService) GetSizes(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetSizesResponse, error) {
+	req := c.c.NewRequest(c.name, "CatalogService.GetSizes", in)
+	out := new(GetSizesResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogService) GetCategories(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetCategoriesResponse, error) {
+	req := c.c.NewRequest(c.name, "CatalogService.GetCategories", in)
+	out := new(GetCategoriesResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogService) GetBrands(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetBrandsResponse, error) {
+	req := c.c.NewRequest(c.name, "CatalogService.GetBrands", in)
+	out := new(GetBrandsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogService) GetColors(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetColorsResponse, error) {
+	req := c.c.NewRequest(c.name, "CatalogService.GetColors", in)
+	out := new(GetColorsResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogService) GetConditions(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetConditionsResponse, error) {
+	req := c.c.NewRequest(c.name, "CatalogService.GetConditions", in)
+	out := new(GetConditionsResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -82,13 +137,23 @@ func (c *catalogService) GetProducts(ctx context.Context, in *GetProductsRequest
 
 type CatalogServiceHandler interface {
 	CreateProduct(context.Context, *Product, *CreateProductResponse) error
-	GetProducts(context.Context, *GetProductsRequest, *GetProductsResponse) error
+	GetProducts(context.Context, *GetRequest, *GetProductsResponse) error
+	GetSizes(context.Context, *GetRequest, *GetSizesResponse) error
+	GetCategories(context.Context, *GetRequest, *GetCategoriesResponse) error
+	GetBrands(context.Context, *GetRequest, *GetBrandsResponse) error
+	GetColors(context.Context, *GetRequest, *GetColorsResponse) error
+	GetConditions(context.Context, *GetRequest, *GetConditionsResponse) error
 }
 
 func RegisterCatalogServiceHandler(s server.Server, hdlr CatalogServiceHandler, opts ...server.HandlerOption) error {
 	type catalogService interface {
 		CreateProduct(ctx context.Context, in *Product, out *CreateProductResponse) error
-		GetProducts(ctx context.Context, in *GetProductsRequest, out *GetProductsResponse) error
+		GetProducts(ctx context.Context, in *GetRequest, out *GetProductsResponse) error
+		GetSizes(ctx context.Context, in *GetRequest, out *GetSizesResponse) error
+		GetCategories(ctx context.Context, in *GetRequest, out *GetCategoriesResponse) error
+		GetBrands(ctx context.Context, in *GetRequest, out *GetBrandsResponse) error
+		GetColors(ctx context.Context, in *GetRequest, out *GetColorsResponse) error
+		GetConditions(ctx context.Context, in *GetRequest, out *GetConditionsResponse) error
 	}
 	type CatalogService struct {
 		catalogService
@@ -105,6 +170,26 @@ func (h *catalogServiceHandler) CreateProduct(ctx context.Context, in *Product, 
 	return h.CatalogServiceHandler.CreateProduct(ctx, in, out)
 }
 
-func (h *catalogServiceHandler) GetProducts(ctx context.Context, in *GetProductsRequest, out *GetProductsResponse) error {
+func (h *catalogServiceHandler) GetProducts(ctx context.Context, in *GetRequest, out *GetProductsResponse) error {
 	return h.CatalogServiceHandler.GetProducts(ctx, in, out)
+}
+
+func (h *catalogServiceHandler) GetSizes(ctx context.Context, in *GetRequest, out *GetSizesResponse) error {
+	return h.CatalogServiceHandler.GetSizes(ctx, in, out)
+}
+
+func (h *catalogServiceHandler) GetCategories(ctx context.Context, in *GetRequest, out *GetCategoriesResponse) error {
+	return h.CatalogServiceHandler.GetCategories(ctx, in, out)
+}
+
+func (h *catalogServiceHandler) GetBrands(ctx context.Context, in *GetRequest, out *GetBrandsResponse) error {
+	return h.CatalogServiceHandler.GetBrands(ctx, in, out)
+}
+
+func (h *catalogServiceHandler) GetColors(ctx context.Context, in *GetRequest, out *GetColorsResponse) error {
+	return h.CatalogServiceHandler.GetColors(ctx, in, out)
+}
+
+func (h *catalogServiceHandler) GetConditions(ctx context.Context, in *GetRequest, out *GetConditionsResponse) error {
+	return h.CatalogServiceHandler.GetConditions(ctx, in, out)
 }
