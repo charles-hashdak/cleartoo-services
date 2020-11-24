@@ -11,6 +11,7 @@ service CartService{
 	rpc AddToCart(AddToCartRequest) returns (AddToCartResponse){}
 	rpc DeleteFromCart(DeleteFromCartRequest) returns (DeleteFromCartResponse){}
 	rpc GetCart(GetRequest) returns (GetResponse){}
+	rpc IsInCart(IsInCartRequest) returns (IsInCartResponse){}
 }
 
 message Cart{
@@ -73,4 +74,13 @@ message GetRequest{
 
 message GetResponse{
 	Cart cart = 1;
+}
+
+message IsInCartRequest{
+	string user_id = 1;
+	string product_id = 2;
+}
+
+message IsInCartResponse{
+	bool is_in_cart = 1;
 }
