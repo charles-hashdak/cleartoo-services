@@ -61,7 +61,7 @@ message AddToCartResponse{
 
 message DeleteFromCartRequest{
 	string user_id = 1;
-	Product product = 2;
+	string product_id = 2;
 }
 
 message DeleteFromCartResponse{
@@ -82,5 +82,5 @@ message IsInCartRequest{
 }
 
 message IsInCartResponse{
-	bool is_in_cart = 1;
+	bool in = 1;
 }

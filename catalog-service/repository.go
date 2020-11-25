@@ -37,6 +37,7 @@ type Product struct{
 	CreatedAt 		string 				`json:"created_at"`
 	UpdatedAt 		string 				`json:"updated_at"`
 	ViewCount 		int32 				`json:"view_count"`
+	InCart 			bool
 }
 
 type Category struct{
@@ -189,7 +190,7 @@ func UnmarshalProduct(product *Product, userId string) *pb.Product{
 		UpdatedAt:		product.UpdatedAt,
 		ViewCount:		product.ViewCount,
 		Wished:			wished,
-		InCart:			product.InCart ? product.InCart : false,
+		InCart:			product.InCart,
 	}
 }
 

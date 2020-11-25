@@ -104,14 +104,14 @@ func UnmarshalAddToCartRequest(req *AddToCartRequest) *pb.AddToCartRequest{
 func MarshalDeleteFromCartRequest(req *pb.DeleteFromCartRequest) *DeleteFromCartRequest{
 	return &DeleteFromCartRequest{
 		UserID: 		req.UserId,
-		Product: 		*MarshalProduct(req.Product),
+		ProductID: 		req.ProductId,
 	}
 }
 
 func UnmarshalDeleteFromCartRequest(req *DeleteFromCartRequest) *pb.DeleteFromCartRequest{
 	return &pb.DeleteFromCartRequest{
 		UserId: 		req.UserID,
-		Product: 		UnmarshalProduct(&req.Product),
+		ProductId: 		req.ProductID,
 	}
 }
 
@@ -290,11 +290,16 @@ func (repo *MongoRepository) AddToCart(ctx context.Context, req *AddToCartReques
 }
 
 func (repo *MongoRepository) DeleteFromCart(ctx context.Context, req *DeleteFromCartRequest) error{
+	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
 	_, err := repo.cartCollection.UpdateOne(
 	    ctx,
 	    bson.M{"user_id": req.UserID},
 	    bson.D{
-	        {"$pull", bson.D{{"products", req.Product}}},
+	        {"$pull", bson.D{
+	        	{"products", bson.D{
+	        		{"id", productId},
+	        	}},
+	        }},
 	    },
 	)
 	if(err != nil){
@@ -324,13 +329,23 @@ func (repo *MongoRepository) CreateCart(ctx context.Context, req *GetRequest) er
 
 func (repo *MongoRepository) IsInCart(ctx context.Context, req *IsInCartRequest) (bool, error){
 	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
-	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"user_id", bson.D{bson.E{"$eq", req.UserID}}})
-	bsonFilters = append(bsonFilters, bson.E{"products.id", bson.D{bson.E{"$matchElement", productId}}})
+	bsonFilters := bson.D{
+		{"user_id", req.UserID},
+		{"products", bson.D{
+			{"$elemMatch", bson.D{
+				{"id", productId},
+			}},
+		}},
+	}
 	count, err := repo.cartCollection.CountDocuments(ctx, bsonFilters)
+	fmt.Println("count")
+	fmt.Println(count)
 	if err != nil {
+		fmt.Println("err")
 		return false, err
 	}
-	inCart := count > 0
-	return inCart, nil
+	if count > 0 {
+		return true, nil
+	}
+	return false, nil
 }

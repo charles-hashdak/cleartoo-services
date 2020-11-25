@@ -1,4 +1,4 @@
-// cart-service/datastore.go
+// order-service/datastore.go
 
 package main
 

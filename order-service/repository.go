@@ -10,7 +10,7 @@ import(
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	_ "go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Order struct{
@@ -78,6 +78,10 @@ type GetRequest struct {
 	UserID 			string
 }
 
+type GetSingleRequest struct {
+	OrderID 		string
+}
+
 type GetResponse struct {
 	Order 			Order
 }
@@ -86,6 +90,18 @@ func MarshalOrderRequest(req *pb.OrderRequest) *OrderRequest{
 	return &OrderRequest{
 		UserID: 		req.UserId,
 		Order: 			*MarshalOrder(req.Order),
+	}
+}
+
+func UnmarshalGetSingleRequest(req *GetSingleRequest) *pb.GetSingleRequest{
+	return &pb.GetSingleRequest{
+		OrderId: 		req.OrderID,
+	}
+}
+
+func MarshalGetSingleRequest(req *pb.GetSingleRequest) *GetSingleRequest{
+	return &GetSingleRequest{
+		OrderID: 		req.OrderId,
 	}
 }
 
@@ -143,18 +159,6 @@ func MarshalGetRequest(req *pb.GetRequest) *GetRequest{
 func UnmarshalGetRequest(req *GetRequest) *pb.GetRequest{
 	return &pb.GetRequest{
 		UserId: 		req.UserID,
-	}
-}
-
-func MarshalGetSingleRequest(req *pb.GetSingleRequest) *GetSingleRequest{
-	return &GetSingleRequest{
-		OrderID: 		req.OrderId,
-	}
-}
-
-func UnmarshalGetSingleRequest(req *GetSingleRequest) *pb.GetSingleRequest{
-	return &pb.GetSingleRequest{
-		OrderId: 		req.OrderID,
 	}
 }
 
@@ -280,17 +284,17 @@ func UnmarshalPhoto(photo *Photo) *pb.Photo{
 	}
 }
 
-func UnmarshalOrderCollection(orders []*Order, userId string) []*pb.Order {
+func UnmarshalOrderCollection(orders []*Order) []*pb.Order {
 	collection := make([]*pb.Order, 0)
 	for _, order := range orders {
-		collection = append(collection, UnmarshalOrder(order, userId))
+		collection = append(collection, UnmarshalOrder(order))
 	}
 	return collection
 }
 
 type repository interface{
 	Order(ctx context.Context, req *OrderRequest) error
-	GetSingleOrder(ctx context.Context, req *GetRequest) (*Order, error)
+	GetSingleOrder(ctx context.Context, req *GetSingleRequest) (*Order, error)
 	GetOrders(ctx context.Context, req *GetRequest) ([]*Order, error)
 	GetSales(ctx context.Context, req *GetRequest) ([]*Order, error)
 }
@@ -309,7 +313,7 @@ func (repo *MongoRepository) GetSingleOrder(ctx context.Context, req *GetSingleR
 }
 
 func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error{
-	_, err := repo.cartCollection.InsertOne(ctx, req.Order)
+	_, err := repo.orderCollection.InsertOne(ctx, req.Order)
 	return err
 }
 
@@ -331,7 +335,7 @@ func (repo *MongoRepository) GetOrders(ctx context.Context, req *GetRequest) ([]
 	return orders, err
 }
 
-func (repo *MongoRepository) GetSales(ctx context.Context, req *GetRequest) (*Order, error){
+func (repo *MongoRepository) GetSales(ctx context.Context, req *GetRequest) ([]*Order, error){
 	bsonFilters := bson.D{}
 	bsonFilters = append(bsonFilters, bson.E{"products.owner_id", bson.D{bson.E{"$elemMatch", req.UserID}}})
 	//bsonFilters = append(bsonFilters, bson.E{"disponible", bson.D{bson.E{"$eq", true}}})
