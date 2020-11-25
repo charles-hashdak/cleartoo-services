@@ -14,7 +14,7 @@ type handler struct{
 
 func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.OrderResponse) error {
 
-	err := s.repository.CreateOrder(ctx, MarshalOrderRequest(req))
+	err := s.repository.Order(ctx, MarshalOrderRequest(req))
 
 	if err != nil{
 		return nil
@@ -44,7 +44,7 @@ func (s *handler) GetSales(ctx context.Context, req *pb.GetRequest, res *pb.GetR
 }
 
 func (s *handler) GetSingleOrder(ctx context.Context, req *pb.GetSingleRequest, res *pb.GetSingleResponse) error {
-	order, err := s.repository.GetOrder(ctx, MarshalGetSingleRequest(req))
+	order, err := s.repository.GetSingleOrder(ctx, MarshalGetSingleRequest(req))
 	if err != nil {
 		return err
 	}

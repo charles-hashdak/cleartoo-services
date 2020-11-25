@@ -7,13 +7,13 @@ import(
 
 	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
 	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
-	microclient "github.com/micro/go-micro/client"
 	_ "github.com/pkg/errors"
 )
 
 
 type handler struct {
 	repository
+	cartClient cartPb.CartService
 }
 
 func (s *handler) CreateProduct(ctx context.Context, req *pb.Product, res *pb.CreateProductResponse) error {
@@ -42,15 +42,14 @@ func (s *handler) GetProduct(ctx context.Context, req *pb.GetRequest, res *pb.Pr
 	if err != nil {
 		return err
 	}
-	client := cartPb.NewCartServiceClient("cleartoo.cart", microclient.DefaultClient)
-	res2, err2 := client.IsInCart(context.TODO(), &cartPb.IsInCartRequest{
+	res2, err2 := s.cartClient.IsInCart(ctx, &cartPb.IsInCartRequest{
 		UserId: req.UserId,
 		ProductId: req.ProductId,
 	})
 	if err2 != nil {
 		return err2
 	}
-	product.InCart = res2.IsInCart
+	product.InCart = res2.In
 	res = UnmarshalProduct(product, req.UserId)
 	return nil
 }
