@@ -14,130 +14,64 @@ type handler struct {
 	repository
 }
 
-func (s *handler) CreateProduct(ctx context.Context, req *pb.Product, res *pb.CreateProductResponse) error {
+func (s *handler) CreateAddress(ctx context.Context, req *pb.Address, res *pb.CreateAddressResponse) error {
 
-	// Save our product
-	if err := s.repository.CreateProduct(ctx, MarshalProduct(req)); err != nil {
+	// Save our Address
+	if err := s.repository.CreateAddress(ctx, MarshalAddress(req)); err != nil {
 		return err
 	}
 
 	res.Created = true
-	res.Product = req
+	res.Address = req
 	return nil
 }
 
-func (s *handler) GetProducts(ctx context.Context, req *pb.GetRequest, res *pb.GetProductsResponse) error {
-	products, err := s.repository.GetProducts(ctx, MarshalGetRequest(req))
+func (s *handler) GetAddresses(ctx context.Context, req *pb.GetRequest, res *pb.GetAddressesResponse) error {
+	addresses, err := s.repository.GetAddresses(ctx, MarshalGetRequest(req))
 	if err != nil {
 		return err
 	}
-	res.Products = UnmarshalProductCollection(products, req.UserId)
+	res.Addresses = UnmarshalAddressCollection(addresses, req.UserId)
 	return nil
 }
 
-func (s *handler) GetProduct(ctx context.Context, req *pb.GetRequest, res *pb.Product) error {
-	product, err := s.repository.GetProduct(ctx, MarshalGetRequest(req))
+func (s *handler) GetAddress(ctx context.Context, req *pb.GetRequest, res *pb.Address) error {
+	address, err := s.repository.GetAddress(ctx, MarshalGetRequest(req))
 	if err != nil {
 		return err
 	}
-	res = UnmarshalProduct(product, req.UserId)
+	res = UnmarshalAddress(address, req.UserId)
 	return nil
 }
 
-func (s *handler) Wish(ctx context.Context, req *pb.GetRequest, res *pb.WishResponse) error {
-	if err := s.repository.Wish(ctx, MarshalGetRequest(req)); err != nil {
+func (s *handler) GetCountries(ctx context.Context, req *pb.Request, res *pb.GetCountriesResponse) error {
+	countries, err := s.repository.GetCountries(ctx, MarshalRequest(req))
+	if err != nil {
 		return err
 	}
-
-	res.Wished = true
+	res.Countries = UnmarshalCountryCollection(countries)
 	return nil
 }
 
-func (s *handler) GetWishes(ctx context.Context, req *pb.GetRequest, res *pb.GetProductsResponse) error {
-	products, err := s.repository.GetWishes(ctx, MarshalGetRequest(req))
+func (s *handler) GetCities(ctx context.Context, req *pb.GetRequest, res *pb.GetCitiesResponse) error {
+	cities, err := s.repository.GetCities(ctx, MarshalGetRequest(req))
 	if err != nil {
 		return err
 	}
-	res.Products = UnmarshalProductCollection(products, req.UserId)
+	res.Cities = UnmarshalCityCollection(cities)
 	return nil
 }
 
-func (s *handler) GetSizes(ctx context.Context, req *pb.GetRequest, res *pb.GetSizesResponse) error {
-	sizes, err := s.repository.GetSizes(ctx, MarshalGetRequest(req))
+func (s *handler) GetAddAddressData(ctx context.Context, req *pb.Request, res *pb.GetAddAddressDataResponse) error {
+	countries, err := s.repository.GetCountries(ctx, MarshalRequest(req))
 	if err != nil {
 		return err
 	}
-	res.Sizes = UnmarshalSizeCollection(sizes)
-	return nil
-}
-
-func (s *handler) GetCategories(ctx context.Context, req *pb.GetRequest, res *pb.GetCategoriesResponse) error {
-	categories, err := s.repository.GetCategories(ctx, MarshalGetRequest(req))
+	res.Countries = UnmarshalCountryCollection(countries)
+	cities, err := s.repository.GetCities(ctx, MarshalGetRequest(req))
 	if err != nil {
 		return err
 	}
-	res.Categories = UnmarshalCategoryCollection(categories)
-	return nil
-}
-
-func (s *handler) GetBrands(ctx context.Context, req *pb.Request, res *pb.GetBrandsResponse) error {
-	brands, err := s.repository.GetBrands(ctx, MarshalRequest(req))
-	if err != nil {
-		return err
-	}
-	res.Brands = UnmarshalBrandCollection(brands)
-	return nil
-}
-
-func (s *handler) GetColors(ctx context.Context, req *pb.Request, res *pb.GetColorsResponse) error {
-	colors, err := s.repository.GetColors(ctx, MarshalRequest(req))
-	if err != nil {
-		return err
-	}
-	res.Colors = UnmarshalColorCollection(colors)
-	return nil
-}
-
-func (s *handler) GetConditions(ctx context.Context, req *pb.Request, res *pb.GetConditionsResponse) error {
-	conditions, err := s.repository.GetConditions(ctx, MarshalRequest(req))
-	if err != nil {
-		return err
-	}
-	res.Conditions = UnmarshalConditionCollection(conditions)
-	return nil
-}
-
-func (s *handler) GetAddProductData(ctx context.Context, req *pb.Request, res *pb.GetAddProductDataResponse) error {
-	var gendersReq = new(pb.GetRequest)
-	var gendersFilter = new(pb.Filter)
-	gendersFilter.Key = "parent_id"
-	gendersFilter.Condition = "$exists"
-	gendersFilter.Value = "false"
-	gendersReq.Filters = append(gendersReq.Filters, gendersFilter)
-	categories, err := s.repository.GetCategories(ctx, MarshalGetRequest(gendersReq))
-	if err != nil {
-		return err
-	}
-	res.Genders = UnmarshalCategoryCollection(categories)
-	conditions, err := s.repository.GetConditions(ctx, MarshalRequest(req))
-	if err != nil {
-		return err
-	}
-	res.Conditions = UnmarshalConditionCollection(conditions)
-	colors, err := s.repository.GetColors(ctx, MarshalRequest(req))
-	if err != nil {
-		return err
-	}
-	res.Colors = UnmarshalColorCollection(colors)
-	brands, err := s.repository.GetBrands(ctx, MarshalRequest(req))
-	if err != nil {
-		return err
-	}
-	res.Brands = UnmarshalBrandCollection(brands)
-	materials, err := s.repository.GetMaterials(ctx, MarshalRequest(req))
-	if err != nil {
-		return err
-	}
-	res.Materials = UnmarshalMaterialCollection(materials)
-	return nil
+	res.Cities = UnmarshalCityCollection(cities)
+	return nil;
 }
