@@ -1,4 +1,4 @@
-module github.com/charles-hashdak/cleartoo-services/catalog-service
+module github.com/charles-hashdak/cleartoo-services/shipping-service
 
 go 1.14
 

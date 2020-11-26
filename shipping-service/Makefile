@@ -1,6 +1,6 @@
 build:
-	protoc --proto_path=. --go_out=. --micro_out=. proto/catalog/catalog.proto
-	sudo docker build -t catalog-service .
+	protoc --proto_path=. --go_out=. --micro_out=. proto/shipping/shipping.proto
+	sudo docker build -t shipping-service .
 
 run:
 	sudo docker run --net="host" \
@@ -8,4 +8,4 @@ run:
 	    -e DB_HOST=localhost \
 		-e MICRO_SERVER_ADDRESS=:50051 \
 		-e MICRO_REGISTRY=mdns \
-		catalog-service
+		shipping-service

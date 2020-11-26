@@ -63,7 +63,7 @@ type AddToCartResponse struct {
 
 type DeleteFromCartRequest struct {
 	UserID 			string
-	Product 		Product
+	ProductID 		string
 }
 
 type DeleteFromCartResponse struct {

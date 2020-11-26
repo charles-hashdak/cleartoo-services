@@ -31,6 +31,15 @@ services:
       MICRO_REGISTRY: "mdns"
       DB_HOST: "mongodb://localhost:27017"
 
+  shipping:
+    restart: always
+    build: ./shipping-service
+    network_mode: "host"
+    environment:
+      MICRO_SERVER_ADDRESS: ":50055"
+      MICRO_REGISTRY: "mdns"
+      DB_HOST: "mongodb://localhost:27017"
+
   user:
     restart: always
     build: ./user-service

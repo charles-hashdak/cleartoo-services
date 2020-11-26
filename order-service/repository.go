@@ -21,6 +21,9 @@ type Order struct{
 	ShippingFees    int32 				`json:"shipping_fees"`
 	Taxes 			int32 				`json:"taxes"`
 	Total 			int32 				`json:"total"`
+	Status 			string 				`json:"status"`
+	ShippingID 		string 				`json:"shipping_id"`
+	PaymentID 		string 				`json:"payment_id"`
 }
 
 type Product struct{
@@ -221,6 +224,13 @@ func MarshalOrder(order *pb.Order) *Order{
 		ID:				objId,
 		UserID:			order.UserId,
 		Products:		MarshalProducts(order.Products),
+		SubTotal:		order.SubTotal,
+		ShippingFees:	order.ShippingFees,
+		Taxes:			order.Taxes,
+		Total:			order.Total,
+		Status:			order.Status,
+		ShippingID:		order.ShippingId,
+		PaymentID:		order.PaymentId,
 	}
 }
 
@@ -229,6 +239,13 @@ func UnmarshalOrder(order *Order) *pb.Order{
 		Id:				order.ID.Hex(),
 		UserId:			order.UserID,
 		Products:		UnmarshalProducts(order.Products),
+		SubTotal:		order.SubTotal,
+		ShippingFees:	order.ShippingFees,
+		Taxes:			order.Taxes,
+		Total:			order.Total,
+		Status:			order.Status,
+		ShippingId:		order.ShippingID,
+		PaymentId:		order.PaymentID,
 	}
 }
 

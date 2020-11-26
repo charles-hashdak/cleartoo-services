@@ -18,9 +18,12 @@ message Order{
 	string user_id = 2;
 	repeated Product products = 3;
 	int32 sub_total = 4;
-	int32 shipping_fee = 5;
+	int32 shipping_fees = 5;
 	int32 taxes = 6;
 	int32 total = 7;
+	string status = 8;
+	string shipping_id = 9;
+	string payment_id = 10;
 }
 
 message Product{

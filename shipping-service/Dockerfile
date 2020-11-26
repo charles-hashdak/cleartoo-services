@@ -11,7 +11,7 @@ ENV GO111MODULE=on
 COPY . .
 
 RUN go mod download
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o catalog-service *.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o shipping-service *.go
 
 # Run container
 FROM alpine:latest
@@ -20,6 +20,6 @@ RUN apk --no-cache add ca-certificates
 
 RUN mkdir /app
 WORKDIR /app
-COPY --from=builder /app/catalog-service .
+COPY --from=builder /app/shipping-service .
 
-CMD ["./catalog-service"]
+CMD ["./shipping-service"]

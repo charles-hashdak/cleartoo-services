@@ -1,4 +1,4 @@
-// catalog-service/main.go
+// shipping-service/main.go
 
 package main
 
@@ -8,7 +8,7 @@ import(
 	"log"
 	"os"
 
-	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
+	pb "github.com/charles-hashdak/cleartoo-services/shipping-service/proto/shipping"
 	"github.com/micro/go-micro/v2"
 	_ "github.com/asim/nitro-plugins/registry/mdns"
 )
@@ -16,7 +16,7 @@ import(
 func main(){
 
 	service := micro.NewService(
-		micro.Name("cleartoo.catalog"),
+		micro.Name("cleartoo.shipping"),
 	)
 
 	service.Init()
@@ -29,19 +29,17 @@ func main(){
 	}
 	defer client.Disconnect(context.Background())
 
-	productCollection := client.Database("cleartoo").Collection("products")
-	sizeCollection := client.Database("cleartoo").Collection("sizes")
-	categoryCollection := client.Database("cleartoo").Collection("categories")
-	brandCollection := client.Database("cleartoo").Collection("brands")
-	colorCollection := client.Database("cleartoo").Collection("colors")
-	conditionCollection := client.Database("cleartoo").Collection("conditions")
-	materialCollection := client.Database("cleartoo").Collection("materials")
+	addressesCollection := client.Database("cleartoo").Collection("addresses")
+	shipmentsCollection := client.Database("cleartoo").Collection("shipments")
+	methodsCollection := client.Database("cleartoo").Collection("methods")
+	countriesCollection := client.Database("cleartoo").Collection("countries")
+	citiesCollection := client.Database("cleartoo").Collection("cities")
 
-	repository := &MongoRepository{productCollection, categoryCollection, sizeCollection, brandCollection, colorCollection, conditionCollection, materialCollection}
+	repository := &MongoRepository{addressesCollection, shipmentsCollection, methodsCollection, countriesCollection, citiesCollection}
 
 	h := &handler{repository}
 
-	if err := pb.RegisterCatalogServiceHandler(service.Server(), h); err != nil{
+	if err := pb.RegistershippingServiceHandler(service.Server(), h); err != nil{
 		fmt.Println(err)
 	}
 
