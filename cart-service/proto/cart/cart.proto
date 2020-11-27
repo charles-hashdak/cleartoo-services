@@ -12,6 +12,7 @@ service CartService{
 	rpc DeleteFromCart(DeleteFromCartRequest) returns (DeleteFromCartResponse){}
 	rpc GetCart(GetRequest) returns (GetResponse){}
 	rpc IsInCart(IsInCartRequest) returns (IsInCartResponse){}
+	rpc EmptyCart(GetRequest) returns (DeleteFromCartResponse){}
 }
 
 message Cart{

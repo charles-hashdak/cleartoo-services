@@ -1,4 +1,4 @@
-// catalog-service/datastore.go
+// shipping-service/datastore.go
 
 package main
 

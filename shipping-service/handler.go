@@ -1,11 +1,11 @@
-// catalog-service/handler.go
+// shipping-service/handler.go
 
 package main
 
 import(
 	"context"
 
-	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
+	pb "github.com/charles-hashdak/cleartoo-services/shipping-service/proto/shipping"
 	_ "github.com/pkg/errors"
 )
 
@@ -40,7 +40,7 @@ func (s *handler) GetAddress(ctx context.Context, req *pb.GetRequest, res *pb.Ad
 	if err != nil {
 		return err
 	}
-	res = UnmarshalAddress(address, req.UserId)
+	res = UnmarshalAddress(address)
 	return nil
 }
 
@@ -49,7 +49,7 @@ func (s *handler) GetCountries(ctx context.Context, req *pb.Request, res *pb.Get
 	if err != nil {
 		return err
 	}
-	res.Countries = UnmarshalCountryCollection(countries)
+	res.Countries = UnmarshalCountries(countries)
 	return nil
 }
 
@@ -58,7 +58,7 @@ func (s *handler) GetCities(ctx context.Context, req *pb.GetRequest, res *pb.Get
 	if err != nil {
 		return err
 	}
-	res.Cities = UnmarshalCityCollection(cities)
+	res.Cities = UnmarshalCities(cities)
 	return nil
 }
 
@@ -67,11 +67,12 @@ func (s *handler) GetAddAddressData(ctx context.Context, req *pb.Request, res *p
 	if err != nil {
 		return err
 	}
-	res.Countries = UnmarshalCountryCollection(countries)
-	cities, err := s.repository.GetCities(ctx, MarshalGetRequest(req))
+	res.Countries = UnmarshalCountries(countries)
+	var getReq = new(pb.GetRequest)
+	cities, err := s.repository.GetCities(ctx, MarshalGetRequest(getReq))
 	if err != nil {
 		return err
 	}
-	res.Cities = UnmarshalCityCollection(cities)
+	res.Cities = UnmarshalCities(cities)
 	return nil;
 }

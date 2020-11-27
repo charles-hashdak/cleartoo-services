@@ -39,7 +39,7 @@ func main(){
 
 	h := &handler{repository}
 
-	if err := pb.RegistershippingServiceHandler(service.Server(), h); err != nil{
+	if err := pb.RegisterShippingServiceHandler(service.Server(), h); err != nil{
 		fmt.Println(err)
 	}
 

@@ -1,4 +1,4 @@
-// catalog-service/repository.go
+// shipping-service/repository.go
 
 package main
 
@@ -6,14 +6,14 @@ import(
 	"context"
 	"time"
 
-	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
+	pb "github.com/charles-hashdak/cleartoo-services/shipping-service/proto/shipping"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Catalog service database structure and definitions
+// shipping service database structure and definitions
 
 type Address struct{
 	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
@@ -41,7 +41,7 @@ type Shipment struct{
 
 type Method struct{
 	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
-	OrderID 		string				`json:"order_id"`
+	Name    		string				`json:"name"`
 	Countries 		Countries 			`json:"countries"`
 	Cities 			Cities 				`json:"cities"`
 }
@@ -53,8 +53,7 @@ type Cities []*City
 type GetRequest struct{
 	Filters 		Filters
 	UserID 			string
-	ProductID 		string
-	Wished 			bool
+	AddressID 		string
 }
 
 type Request struct{}
@@ -143,7 +142,7 @@ func MarshalMethod(method *pb.Method) *Method{
 	objId, _ := primitive.ObjectIDFromHex(method.Id)
 	return &Method{
 		ID: 			objId,
-		OrderID: 		method.OrderId,
+		Name: 			method.Name,
 		Countries: 		MarshalCountries(method.Countries),
 		Cities: 		MarshalCities(method.Cities),
 	}
@@ -152,7 +151,7 @@ func MarshalMethod(method *pb.Method) *Method{
 func UnmarshalMethod(method *Method) *pb.Method{
 	return &pb.Method{
 		Id: 			method.ID.Hex(),
-		OrderId: 		method.OrderID,
+		Name: 		method.Name,
 		Countries: 		UnmarshalCountries(method.Countries),
 		Cities: 		UnmarshalCities(method.Cities),
 	}
@@ -188,31 +187,6 @@ func UnmarshalCities(cities Cities) []*pb.City {
 		collection = append(collection, UnmarshalCity(city))
 	}
 	return collection
-}
-
-func MarshalColor(color *pb.Color) *Color{
-	if(color == nil){
-		return &Color{}
-	}
-	objId, _ := primitive.ObjectIDFromHex(color.Id)
-	return &Color{
-		ID:				objId,
-		Name:			color.Name,
-		HexCode:		color.HexCode,
-		Image:			color.Image,
-	}
-}
-
-func UnmarshalColor(color *Color) *pb.Color{
-	if(color == nil){
-		return &pb.Color{}
-	}
-	return &pb.Color{
-		Id:				color.ID.Hex(),
-		Name:			color.Name,
-		HexCode:		color.HexCode,
-		Image:			color.Image,
-	}
 }
 
 func MarshalCountry(country *pb.Country) *Country{
@@ -286,7 +260,7 @@ func UnmarshalRequest(req *Request) *pb.Request{
 func UnmarshalAddressCollection(addresses []*Address, userId string) []*pb.Address {
 	collection := make([]*pb.Address, 0)
 	for _, address := range addresses {
-		collection = append(collection, UnmarshalAddress(address, userId))
+		collection = append(collection, UnmarshalAddress(address))
 	}
 	return collection
 }
@@ -383,7 +357,7 @@ func (repo *MongoRepository) GetAddresses(ctx context.Context, req *GetRequest) 
 }
 
 func (repo *MongoRepository) GetAddress(ctx context.Context, req *GetRequest) (*Address, error){
-	addressId, _ := primitive.ObjectIDFromHex(req.addressID)
+	addressId, _ := primitive.ObjectIDFromHex(req.AddressID)
 	bsonFilters := bson.D{}
 	bsonFilters = append(bsonFilters, bson.E{"_id", bson.D{bson.E{"$eq", addressId}}})
 	//bsonFilters = append(bsonFilters, bson.E{"disponible", bson.D{bson.E{"$eq", true}}})

@@ -4,6 +4,7 @@ package main
 
 import(
 	"context"
+	"fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
 	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
@@ -32,6 +33,17 @@ func (s *handler) GetProducts(ctx context.Context, req *pb.GetRequest, res *pb.G
 	products, err := s.repository.GetProducts(ctx, MarshalGetRequest(req))
 	if err != nil {
 		return err
+	}
+	for _, product := range products {
+		inCartRes, err2 := s.cartClient.IsInCart(ctx, &cartPb.IsInCartRequest{
+			UserId: req.UserId,
+			ProductId: product.ID.Hex(),
+		})
+		if err2 != nil {
+			fmt.Println(err2)
+			return err2
+		}
+		product.InCart = inCartRes.In
 	}
 	res.Products = UnmarshalProductCollection(products, req.UserId)
 	return nil
