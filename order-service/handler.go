@@ -6,10 +6,12 @@ import(
 	"context"
 
 	pb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
+	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
 )
 
 type handler struct{
 	repository
+	cartClient cartPb.CartService
 }
 
 func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.OrderResponse) error {
@@ -21,6 +23,14 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 	}
 
 	res.Added = true
+
+	_, err2 := s.cartClient.EmptyCart(ctx, &cartPb.GetRequest{
+		UserId: req.UserId,
+	})
+
+	if err2 != nil{
+		return nil
+	}
 
 	return nil
 }

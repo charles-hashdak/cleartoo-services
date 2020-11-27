@@ -267,6 +267,7 @@ type repository interface{
 	DeleteFromCart(ctx context.Context, req *DeleteFromCartRequest) error
 	GetCart(ctx context.Context, req *GetRequest) (*Cart, error)
 	IsInCart(ctx context.Context, req *IsInCartRequest) (bool, error)
+	EmptyCart(ctx context.Context, req *GetRequest) error
 }
 
 type MongoRepository struct{
@@ -348,4 +349,21 @@ func (repo *MongoRepository) IsInCart(ctx context.Context, req *IsInCartRequest)
 		return true, nil
 	}
 	return false, nil
+}
+
+func (repo *MongoRepository) EmptyCart(ctx context.Context, req *GetRequest) error{
+	cartProducts := make(Products, 0)
+	_, err := repo.cartCollection.UpdateOne(
+	    ctx,
+	    bson.M{"user_id": req.UserID},
+	    bson.D{
+	        {"$set", bson.D{
+	        	{"products", cartProducts},
+	        }},
+	    },
+	)
+	if(err != nil){
+		return err
+	}
+	return nil
 }

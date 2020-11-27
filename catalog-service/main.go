@@ -38,7 +38,7 @@ func main(){
 	conditionCollection := client.Database("cleartoo").Collection("conditions")
 	materialCollection := client.Database("cleartoo").Collection("materials")
 
-	cartClient := cartPb.NewCartService("cleartoo.cart.client", service.Client())
+	cartClient := cartPb.NewCartService("cleartoo.cart", service.Client())
 
 	repository := &MongoRepository{productCollection, categoryCollection, sizeCollection, brandCollection, colorCollection, conditionCollection, materialCollection}
 

@@ -51,6 +51,19 @@ func (s *handler) DeleteFromCart(ctx context.Context, req *pb.DeleteFromCartRequ
 	return nil
 }
 
+func (s *handler) EmptyCart(ctx context.Context, req *pb.GetRequest, res *pb.DeleteFromCartResponse) error {
+
+	err := s.repository.EmptyCart(ctx, MarshalGetRequest(req))
+
+	if err != nil{
+		return nil
+	}
+
+	res.Deleted = true
+
+	return nil
+}
+
 func (s *handler) GetCart(ctx context.Context, req *pb.GetRequest, res *pb.GetResponse) error {
 	cart, err := s.repository.GetCart(ctx, MarshalGetRequest(req))
 	if err != nil {
