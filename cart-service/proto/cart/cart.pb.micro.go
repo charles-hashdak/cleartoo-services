@@ -47,6 +47,7 @@ type CartService interface {
 	DeleteFromCart(ctx context.Context, in *DeleteFromCartRequest, opts ...client.CallOption) (*DeleteFromCartResponse, error)
 	GetCart(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetResponse, error)
 	IsInCart(ctx context.Context, in *IsInCartRequest, opts ...client.CallOption) (*IsInCartResponse, error)
+	EmptyCart(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*DeleteFromCartResponse, error)
 }
 
 type cartService struct {
@@ -111,6 +112,16 @@ func (c *cartService) IsInCart(ctx context.Context, in *IsInCartRequest, opts ..
 	return out, nil
 }
 
+func (c *cartService) EmptyCart(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*DeleteFromCartResponse, error) {
+	req := c.c.NewRequest(c.name, "CartService.EmptyCart", in)
+	out := new(DeleteFromCartResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for CartService service
 
 type CartServiceHandler interface {
@@ -119,6 +130,7 @@ type CartServiceHandler interface {
 	DeleteFromCart(context.Context, *DeleteFromCartRequest, *DeleteFromCartResponse) error
 	GetCart(context.Context, *GetRequest, *GetResponse) error
 	IsInCart(context.Context, *IsInCartRequest, *IsInCartResponse) error
+	EmptyCart(context.Context, *GetRequest, *DeleteFromCartResponse) error
 }
 
 func RegisterCartServiceHandler(s server.Server, hdlr CartServiceHandler, opts ...server.HandlerOption) error {
@@ -128,6 +140,7 @@ func RegisterCartServiceHandler(s server.Server, hdlr CartServiceHandler, opts .
 		DeleteFromCart(ctx context.Context, in *DeleteFromCartRequest, out *DeleteFromCartResponse) error
 		GetCart(ctx context.Context, in *GetRequest, out *GetResponse) error
 		IsInCart(ctx context.Context, in *IsInCartRequest, out *IsInCartResponse) error
+		EmptyCart(ctx context.Context, in *GetRequest, out *DeleteFromCartResponse) error
 	}
 	type CartService struct {
 		cartService
@@ -158,4 +171,8 @@ func (h *cartServiceHandler) GetCart(ctx context.Context, in *GetRequest, out *G
 
 func (h *cartServiceHandler) IsInCart(ctx context.Context, in *IsInCartRequest, out *IsInCartResponse) error {
 	return h.CartServiceHandler.IsInCart(ctx, in, out)
+}
+
+func (h *cartServiceHandler) EmptyCart(ctx context.Context, in *GetRequest, out *DeleteFromCartResponse) error {
+	return h.CartServiceHandler.EmptyCart(ctx, in, out)
 }
