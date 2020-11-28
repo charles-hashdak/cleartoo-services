@@ -336,8 +336,7 @@ func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error
 
 func (repo *MongoRepository) GetOrders(ctx context.Context, req *GetRequest) ([]*Order, error){
 	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"user_id", bson.D{bson.E{"$eq", req.UserID}}})
-	//bsonFilters = append(bsonFilters, bson.E{"disponible", bson.D{bson.E{"$eq", true}}})
+	bsonFilters = append(bsonFilters, bson.E{"userid", bson.D{bson.E{"$eq", req.UserID}}})
 	opts := options.Find().SetShowRecordID(true)
 	cur, err := repo.orderCollection.Find(ctx,  bsonFilters, opts)
 	var orders []*Order
@@ -346,7 +345,6 @@ func (repo *MongoRepository) GetOrders(ctx context.Context, req *GetRequest) ([]
 		if err := cur.Decode(&order); err != nil {
 			return nil, err
 		}
-		//order.Wishers = make([]string, 0)
 		orders = append(orders, order)
 	}
 	return orders, err
@@ -354,8 +352,7 @@ func (repo *MongoRepository) GetOrders(ctx context.Context, req *GetRequest) ([]
 
 func (repo *MongoRepository) GetSales(ctx context.Context, req *GetRequest) ([]*Order, error){
 	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"products.owner_id", bson.D{bson.E{"$elemMatch", req.UserID}}})
-	//bsonFilters = append(bsonFilters, bson.E{"disponible", bson.D{bson.E{"$eq", true}}})
+	bsonFilters = append(bsonFilters, bson.E{"products.ownerid", bson.D{bson.E{"$elemMatch", req.UserID}}})
 	opts := options.Find().SetShowRecordID(true)
 	cur, err := repo.orderCollection.Find(ctx,  bsonFilters, opts)
 	var orders []*Order
@@ -364,7 +361,6 @@ func (repo *MongoRepository) GetSales(ctx context.Context, req *GetRequest) ([]*
 		if err := cur.Decode(&order); err != nil {
 			return nil, err
 		}
-		//order.Wishers = make([]string, 0)
 		orders = append(orders, order)
 	}
 	return orders, err
