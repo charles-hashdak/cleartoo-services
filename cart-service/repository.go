@@ -33,6 +33,7 @@ type Product struct{
 	Brand 			string
 	Condition 		string
 	Material 		string
+	OwnerID 		string
 }
 
 type Photo struct{
@@ -156,6 +157,7 @@ func MarshalProduct(product *pb.Product) *Product{
 		Brand:			product.Brand,
 		Condition:		product.Condition,
 		Material:		product.Material,
+		OwnerID:		product.OwnerId,
 	}
 }
 
@@ -173,6 +175,7 @@ func UnmarshalProduct(product *Product) *pb.Product{
 		Brand:			product.Brand,
 		Condition:		product.Condition,
 		Material:		product.Material,
+		OwnerId:		product.OwnerID,
 	}
 }
 

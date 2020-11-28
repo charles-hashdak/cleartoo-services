@@ -34,6 +34,7 @@ message Product{
 	string brand = 10;
 	string condition = 11;
 	string material = 12;
+	string owner_id = 13;
 }
 
 message Photo{
