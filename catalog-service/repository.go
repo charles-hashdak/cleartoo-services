@@ -22,6 +22,7 @@ type Product struct{
 	Description 	string 				`json:"description"`
 	Price 			int32 				`json:"price"`
 	Photos 			Photos 				`json:"photos"`
+	Gender  		Gender 				`json:"gender"`
 	Category 		Category			`json:"category"`
 	Size 			string 				`json:"size"`
 	Color1 			Color 				`json:"color1"`
@@ -37,7 +38,13 @@ type Product struct{
 	CreatedAt 		string 				`json:"created_at"`
 	UpdatedAt 		string 				`json:"updated_at"`
 	ViewCount 		int32 				`json:"view_count"`
+	Offers 			Offers 				`json:"offers"`
 	InCart 			bool
+}
+
+type Gender struct{
+	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
+	Name 			string 				`json:"name"`
 }
 
 type Category struct{
@@ -45,6 +52,7 @@ type Category struct{
 	Name 			string 				`json:"name"`
 	ParentID 		primitive.ObjectID	`bson:"parent_id,omitempty"`
 	Sizes 			Sizes 				`json:"sizes"`
+	Genders 		[]string 			`json:"genders"`
 }
 
 type Owner struct{
@@ -72,11 +80,22 @@ type Photo struct{
 
 type Photos []*Photo
 
+type Offer struct{
+	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
+	UserID 			string 				`json:"user_id"`
+	Amount			int32 				`json:"amount"`
+	Status 			string 				`json:"status"`
+}
+
+type Offers []*Offer
+
 type GetRequest struct{
 	Filters 		Filters
 	UserID 			string
 	ProductID 		string
 	Wished 			bool
+	Limit			int64
+	Offset			int64
 }
 
 type Request struct{}
@@ -143,6 +162,7 @@ func MarshalProduct(product *pb.Product) *Product{
 		Description:	product.Description,
 		Price:			product.Price,
 		Photos:			MarshalPhotos(product.Photos),
+		Gender:			*MarshalGender(product.Gender),
 		Category:		*MarshalCategory(product.Category),
 		Size:			product.Size,
 		Color1:			*MarshalColor(product.Color1),
@@ -158,6 +178,7 @@ func MarshalProduct(product *pb.Product) *Product{
 		CreatedAt:		product.CreatedAt,
 		UpdatedAt:		product.UpdatedAt,
 		ViewCount:		product.ViewCount,
+		Offers:			MarshalOffers(product.Offers),
 	}
 }
 
@@ -175,6 +196,7 @@ func UnmarshalProduct(product *Product, userId string) *pb.Product{
 		Description:	product.Description,
 		Price:			product.Price,
 		Photos:			UnmarshalPhotos(product.Photos),
+		Gender:			UnmarshalGender(&product.Gender),
 		Category:		UnmarshalCategory(&product.Category),
 		Size:			product.Size,
 		Color1:			UnmarshalColor(&product.Color1),
@@ -190,6 +212,7 @@ func UnmarshalProduct(product *Product, userId string) *pb.Product{
 		UpdatedAt:		product.UpdatedAt,
 		ViewCount:		product.ViewCount,
 		Wished:			wished,
+		Offers:			UnmarshalOffers(product.Offers),
 		InCart:			product.InCart,
 	}
 }
@@ -235,6 +258,47 @@ func UnmarshalPhotos(photos Photos) []*pb.Photo {
 	collection := make([]*pb.Photo, 0)
 	for _, photo := range photos {
 		collection = append(collection, UnmarshalPhoto(photo))
+	}
+	return collection
+}
+
+func MarshalOffer(offer *pb.Offer) *Offer{
+	if(offer == nil){
+		return &Offer{}
+	}
+	objId, _ := primitive.ObjectIDFromHex(offer.Id)
+	return &Offer{
+		ID:				objId,
+		UserID:			offer.UserId,
+		Amount:			offer.Amount,
+		Status:			offer.Status,
+	}
+}
+
+func MarshalOffers(offers []*pb.Offer) Offers {
+	collection := make(Offers, 0)
+	for _, offer := range offers {
+		collection = append(collection, MarshalOffer(offer))
+	}
+	return collection
+}
+
+func UnmarshalOffer(offer *Offer) *pb.Offer{
+	if(offer == nil){
+		return &pb.Offer{}
+	}
+	return &pb.Offer{
+		Id:				offer.ID.Hex(),
+		UserId:			offer.UserID,
+		Amount:			offer.Amount,
+		Status:			offer.Status,
+	}
+}
+
+func UnmarshalOffers(offers Offers) []*pb.Offer {
+	collection := make([]*pb.Offer, 0)
+	for _, offer := range offers {
+		collection = append(collection, UnmarshalOffer(offer))
 	}
 	return collection
 }
@@ -291,6 +355,7 @@ func MarshalCategory(category *pb.Category) *Category{
 		Name:			category.Name,
 		ParentID:		parentObjId,
 		Sizes:			MarshalSizes(category.Sizes),
+		Genders:		category.Genders,
 	}
 }
 
@@ -303,6 +368,28 @@ func UnmarshalCategory(category *Category) *pb.Category{
 		Name:			category.Name,
 		ParentId:		category.ParentID.Hex(),
 		Sizes:			UnmarshalSizes(category.Sizes),
+		Genders:		category.Genders,
+	}
+}
+
+func MarshalGender(gender *pb.Gender) *Gender{
+	if(gender == nil){
+		return &Gender{}
+	}
+	objId, _ := primitive.ObjectIDFromHex(gender.Id)
+	return &Gender{
+		ID:				objId,
+		Name:			gender.Name,
+	}
+}
+
+func UnmarshalGender(gender *Gender) *pb.Gender{
+	if(gender == nil){
+		return &pb.Gender{}
+	}
+	return &pb.Gender{
+		Id:				gender.ID.Hex(),
+		Name:			gender.Name,
 	}
 }
 
@@ -505,6 +592,8 @@ func MarshalGetRequest(req *pb.GetRequest) *GetRequest{
 		UserID: 		req.UserId,
 		ProductID: 		req.ProductId,
 		Wished: 		req.Wished,
+		Limit: 			req.Limit,
+		Offset:			req.Offset,
 	}
 }
 
@@ -514,6 +603,8 @@ func UnmarshalGetRequest(req *GetRequest) *pb.GetRequest{
 		UserId: 		req.UserID,
 		ProductId: 		req.ProductID,
 		Wished: 		req.Wished,
+		Limit: 			req.Limit,
+		Offset:			req.Offset,
 	}
 }
 
@@ -537,6 +628,14 @@ func UnmarshalSizeCollection(sizes []*Size) []*pb.Size {
 	collection := make([]*pb.Size, 0)
 	for _, size := range sizes {
 		collection = append(collection, UnmarshalSize(size))
+	}
+	return collection
+}
+
+func UnmarshalGenderCollection(genders []*Gender) []*pb.Gender {
+	collection := make([]*pb.Gender, 0)
+	for _, gender := range genders {
+		collection = append(collection, UnmarshalGender(gender))
 	}
 	return collection
 }
@@ -624,6 +723,7 @@ type repository interface{
 	Wish(ctx context.Context, req *GetRequest) error
 	GetWishes(ctx context.Context, req *GetRequest) ([]*Product, error)
 	GetSizes(ctx context.Context, req *GetRequest) ([]*Size, error)
+	GetGenders(ctx context.Context, req *Request) ([]*Gender, error)
 	GetCategories(ctx context.Context, req *GetRequest) ([]*Category, error)
 	GetBrands(ctx context.Context, req *Request) ([]*Brand, error)
 	GetColors(ctx context.Context, req *Request) ([]*Color, error)
@@ -633,6 +733,7 @@ type repository interface{
 
 type MongoRepository struct{
 	productsCollection *mongo.Collection
+	gendersCollection *mongo.Collection
 	categoriesCollection *mongo.Collection
 	sizesCollection *mongo.Collection
 	brandsCollection *mongo.Collection
@@ -667,8 +768,7 @@ func (repo *MongoRepository) GetProducts(ctx context.Context, req *GetRequest) (
 		}
 	}
 	//bsonFilters = append(bsonFilters, bson.E{"disponible", bson.D{bson.E{"$eq", true}}})
-	opts := options.Find().SetShowRecordID(true)
-	cur, err := repo.productsCollection.Find(ctx,  bsonFilters, opts)
+	cur, err := repo.productsCollection.Find(ctx,  bsonFilters, options.Find().SetShowRecordID(true), options.Find().SetLimit(req.Limit), options.Find().SetSkip(req.Offset))
 	var products []*Product
 	for cur.Next(ctx) {
 		var product *Product
@@ -752,6 +852,20 @@ func (repo *MongoRepository) GetSizes(ctx context.Context, req *GetRequest) ([]*
 func (repo *MongoRepository) CreateCategory(ctx context.Context, category *pb.Category) error{
 	_, err := repo.categoriesCollection.InsertOne(ctx, category)
 	return err
+}
+
+func (repo *MongoRepository) GetGenders(ctx context.Context, req *Request) ([]*Gender, error){
+	bsonFilters := bson.M{}
+	cur, err := repo.gendersCollection.Find(ctx, bsonFilters, nil)
+	var genders []*Gender
+	for cur.Next(ctx) {
+		var gender *Gender
+		if err := cur.Decode(&gender); err != nil {
+			return nil, err
+		}
+		genders = append(genders, gender)
+	}
+	return genders, err
 }
 
 func (repo *MongoRepository) GetCategories(ctx context.Context, req *GetRequest) ([]*Category, error){

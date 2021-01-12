@@ -93,6 +93,15 @@ func (s *handler) GetSizes(ctx context.Context, req *pb.GetRequest, res *pb.GetS
 	return nil
 }
 
+func (s *handler) GetGenders(ctx context.Context, req *pb.Request, res *pb.GetGendersResponse) error {
+	genders, err := s.repository.GetGenders(ctx, MarshalRequest(req))
+	if err != nil {
+		return err
+	}
+	res.Genders = UnmarshalGenderCollection(genders)
+	return nil
+}
+
 func (s *handler) GetCategories(ctx context.Context, req *pb.GetRequest, res *pb.GetCategoriesResponse) error {
 	categories, err := s.repository.GetCategories(ctx, MarshalGetRequest(req))
 	if err != nil {
@@ -130,17 +139,17 @@ func (s *handler) GetConditions(ctx context.Context, req *pb.Request, res *pb.Ge
 }
 
 func (s *handler) GetAddProductData(ctx context.Context, req *pb.Request, res *pb.GetAddProductDataResponse) error {
-	var gendersReq = new(pb.GetRequest)
-	var gendersFilter = new(pb.Filter)
-	gendersFilter.Key = "parent_id"
-	gendersFilter.Condition = "$exists"
-	gendersFilter.Value = "false"
-	gendersReq.Filters = append(gendersReq.Filters, gendersFilter)
-	categories, err := s.repository.GetCategories(ctx, MarshalGetRequest(gendersReq))
+	genders, err := s.repository.GetGenders(ctx, MarshalRequest(req))
 	if err != nil {
 		return err
 	}
-	res.Genders = UnmarshalCategoryCollection(categories)
+	res.Genders = UnmarshalGenderCollection(genders)
+	var categoriesReq = new(pb.GetRequest)
+	categories, err := s.repository.GetCategories(ctx, MarshalGetRequest(categoriesReq))
+	if err != nil {
+		return err
+	}
+	res.Categories = UnmarshalCategoryCollection(categories)
 	conditions, err := s.repository.GetConditions(ctx, MarshalRequest(req))
 	if err != nil {
 		return err

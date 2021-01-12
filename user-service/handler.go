@@ -39,6 +39,24 @@ func (srv *service) Get(ctx context.Context, req *pb.User, res *pb.Response) err
 	return nil
 }
 
+func (srv *service) Edit(ctx context.Context, req *pb.User, res *pb.Response) error {
+	err := srv.repo.Edit(req)
+	if err != nil {
+		return err
+	}
+	res.User = req
+	return nil
+}
+
+func (srv *service) Follow(ctx context.Context, follower *pb.Follower, res *pb.FollowResponse) error {
+	err := srv.repo.Follow(follower)
+	if err != nil {
+		return err
+	}
+	res.Followed = true
+	return nil
+}
+
 func (srv *service) GetAll(ctx context.Context, req *pb.Request, res *pb.Response) error {
 	users, err := srv.repo.GetAll()
 	if err != nil {
@@ -61,7 +79,7 @@ func (srv *service) Auth(ctx context.Context, req *pb.User, res *pb.Response) er
 	// Compares our given password against the hashed password
 	// stored in the database
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return err
+		return status.Errorf(codes.Internal, "wrong_password")
 	}
 
 	token, refreshToken, err := srv.tokenService.Encode(user)

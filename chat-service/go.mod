@@ -1,4 +1,4 @@
-module github.com/charles-hashdak/cleartoo-services/cart-service
+module github.com/charles-hashdak/cleartoo-services/chat-service
 
 go 1.14
 
@@ -8,6 +8,7 @@ replace (
 )
 
 require (
+	go.mongodb.org/mongo-driver v1.0.0
 	github.com/coreos/etcd v3.3.25+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect

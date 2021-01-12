@@ -5,7 +5,7 @@ package main
 import(
 	"context"
 	_ "log"
-	"fmt"
+	_ "fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -278,8 +278,6 @@ type MongoRepository struct{
 }
 
 func (repo *MongoRepository) AddToCart(ctx context.Context, req *AddToCartRequest) error{
-	fmt.Println("req")
-	fmt.Println(req)
 	_, err := repo.cartCollection.UpdateOne(
 	    ctx,
 	    bson.M{"user_id": req.UserID},
@@ -342,10 +340,7 @@ func (repo *MongoRepository) IsInCart(ctx context.Context, req *IsInCartRequest)
 		}},
 	}
 	count, err := repo.cartCollection.CountDocuments(ctx, bsonFilters)
-	fmt.Println("count")
-	fmt.Println(count)
 	if err != nil {
-		fmt.Println("err")
 		return false, err
 	}
 	if count > 0 {

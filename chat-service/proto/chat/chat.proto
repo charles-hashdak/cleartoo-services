@@ -1,21 +1,33 @@
-// cart-service/proto/cart/cart.proto
+// chat-service/proto/chat/chat.proto
 
 syntax = "proto3";
 
-package cart;
+package chat;
 
-option go_package = "proto/cart";
+option go_package = "proto/chat";
 
-service CartService{
-	rpc AddToCart(AddToCartRequest) returns (AddToCartResponse){}
-	rpc DeleteFromCart(DeleteFromCartRequest) returns (DeleteFromCartResponse){}
-	rpc GetCart(GetRequest) returns (GetResponse){}
+service ChatService{
+	rpc Send(Chat) returns (SendResponse){}
+	rpc GetChat(GetChatRequest) returns (GetChatResponse){}
+	rpc GetConversations(GetConversationsRequest) returns (GetConversationsResponse){}
 }
 
-message Cart{
+message Chat{
 	string id = 1;
-	string user_id = 2;
-	repeated Product product = 3;
+	string sender_id = 2;
+	string receiver_id = 3;
+	string message = 4;
+	string send_at = 5;
+	Product product = 6;
+}
+
+message Conversation{
+	string sender_id = 1;
+	string receiver_id = 2;
+	string username = 3;
+	Photo avatar = 4;
+	string last_chat = 5;
+	string send_at = 6;
 }
 
 message Product{
@@ -24,13 +36,6 @@ message Product{
 	string title = 3;
 	int32 price = 4;
 	Photo photo = 5;
-	string category = 6;
-	string size = 7;
-	Color color1 = 8;
-	Color color2 = 9;
-	string brand = 10;
-	string condition = 11;
-	string material = 12;
 }
 
 message Photo{
@@ -39,38 +44,29 @@ message Photo{
 	bool is_main = 3;
 	int32 height = 4;
 	int32 width = 5;
-	repeated Thumbnail thumbnails = 6;
 }
 
-message Color{
-	string id = 1;
-	string name = 2;
-	string hex_code = 3;
-	string image = 4;
+message SendRequest{
+	Chat chat = 1;
 }
 
-message AddToCartRequest{
-	string user_id = 1;
-	Product product = 2;
+message SendResponse{
+	bool sent = 1;
 }
 
-message AddToCartResponse{
-	bool added = 1;
+message GetChatRequest{
+	string sender_id = 1;
+	string receiver_id = 2;
 }
 
-message DeleteFromCartRequest{
-	string user_id = 1;
-	Product product = 2;
+message GetChatResponse{
+	repeated Chat chats = 1;
 }
 
-message DeleteFromCartResponse{
-	bool deleted = 1;
-}
-
-message GetRequest{
+message GetConversationsRequest{
 	string user_id = 1;
 }
 
-message GetResponse{
-	Cart cart = 1;
+message GetConversationsResponse{
+	repeated Conversation conversations = 1;
 }

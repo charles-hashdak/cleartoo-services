@@ -11,7 +11,6 @@ import(
 	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
 	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
 	"github.com/micro/go-micro/v2"
-	_ "github.com/asim/nitro-plugins/registry/mdns"
 )
 
 func main(){
@@ -32,6 +31,7 @@ func main(){
 
 	productCollection := client.Database("cleartoo").Collection("products")
 	sizeCollection := client.Database("cleartoo").Collection("sizes")
+	genderCollection := client.Database("cleartoo").Collection("genders")
 	categoryCollection := client.Database("cleartoo").Collection("categories")
 	brandCollection := client.Database("cleartoo").Collection("brands")
 	colorCollection := client.Database("cleartoo").Collection("colors")
@@ -40,7 +40,7 @@ func main(){
 
 	cartClient := cartPb.NewCartService("cleartoo.cart", service.Client())
 
-	repository := &MongoRepository{productCollection, categoryCollection, sizeCollection, brandCollection, colorCollection, conditionCollection, materialCollection}
+	repository := &MongoRepository{productCollection, genderCollection, categoryCollection, sizeCollection, brandCollection, colorCollection, conditionCollection, materialCollection}
 
 	h := &handler{repository, cartClient}
 

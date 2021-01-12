@@ -19,6 +19,8 @@ service CatalogService{
 
 	rpc GetSizes(GetRequest) returns (GetSizesResponse){}
 
+	rpc GetGenders(Request) returns (GetGendersResponse){}
+
 	rpc GetCategories(GetRequest) returns (GetCategoriesResponse){}
 
 	rpc GetBrands(Request) returns (GetBrandsResponse){}
@@ -39,23 +41,30 @@ message Product{
 	string description = 4;
 	int32 price = 5;
 	repeated Photo photos = 6;
-	Category category = 7;
-	string size = 8;
-	Color color1 = 9;
-	Color color2 = 10;
-	string brand = 11;
-	string condition = 12;
-	string material = 13;
-	Owner owner = 14;
-	repeated string wishers = 15;
-	int32 wishlist_count = 16;
-	string country = 17;
-	string city = 18;
-	string created_at = 19;
-	string updated_at = 20;
-	int32 view_count = 21;
-	bool wished = 22;
-	bool in_cart = 23;
+	Gender gender = 7;
+	Category category = 8;
+	string size = 9;
+	Color color1 = 10;
+	Color color2 = 11;
+	string brand = 12;
+	string condition = 13;
+	string material = 14;
+	Owner owner = 15;
+	repeated string wishers = 16;
+	int32 wishlist_count = 17;
+	string country = 18;
+	string city = 19;
+	string created_at = 20;
+	string updated_at = 21;
+	int32 view_count = 22;
+	bool wished = 23;
+	bool in_cart = 24;
+	repeated Offer offers = 25;
+}
+
+message Gender{
+	string id = 1;
+	string name = 2;
 }
 
 message Category{
@@ -63,6 +72,7 @@ message Category{
 	string name = 2;
 	string parent_id = 3;
 	repeated Size sizes = 4;
+	repeated string genders = 5;
 }
 
 message Owner{
@@ -84,6 +94,13 @@ message Photo{
 	int32 height = 4;
 	int32 width = 5;
 	repeated Thumbnail thumbnails = 6;
+}
+
+message Offer{
+	string id = 1;
+	string user_id = 2;
+	int32 amount = 3;
+	string status = 4;
 }
 
 message Thumbnail{
@@ -140,6 +157,8 @@ message GetRequest{
 	string user_id = 2;
 	string product_id = 3;
 	bool wished = 4;
+	int64 limit = 5;
+	int64 offset = 6;
 }
 
 message Filter{
@@ -155,6 +174,10 @@ message GetProductsResponse{
 
 message GetSizesResponse{
 	repeated Size sizes = 1;
+}
+
+message GetGendersResponse{
+	repeated Gender genders = 1;
 }
 
 message GetCategoriesResponse{
@@ -177,6 +200,7 @@ message GetAddProductDataResponse{
 	repeated Brand brands = 1;
 	repeated Condition conditions = 2;
 	repeated Color colors = 3;
-	repeated Category genders = 4;
-	repeated Material materials = 5;
+	repeated Gender genders = 4;
+	repeated Category categories = 5;
+	repeated Material materials = 6;
 }

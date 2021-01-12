@@ -1,20 +1,42 @@
-// cart-service/main.go
+// chat-service/main.go
 
 package main
 
 import(
 	"context"
 	_ "log"
+	"time"
+	"fmt"
 
-	pb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
+	pb "github.com/charles-hashdak/cleartoo-services/chat-service/proto/chat"
+	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type Cart struct{
+type Chat struct{
 	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
-	UserID 			string 				`json:"user_id"`
-	Products 		Products 			`json:"products"`
+	SenderID 		string 				`json:"sender_id"`
+	ReceiverID 		string 				`json:"receiver_id"`
+	Message 		string 				`json:"message"`
+	SendAt 			string 				`json:"send_at"`
+	Product 		Product 			`json:"product"`
 }
+
+type Chats []*Chat
+
+type Conversation struct{
+	SenderID 		string
+	ReceiverID 		string
+	Username 		string
+	Avatar 			Photo
+	LastChat		string
+	SendAt			string
+}
+
+type Conversations []*Conversation
 
 type Product struct{
 	ID 				primitive.ObjectID
@@ -22,13 +44,6 @@ type Product struct{
 	Title 			string
 	Price 			int32
 	Photo 			Photo
-	Category 		string
-	Size 			string
-	Color1 			Color
-	Color2 			Color
-	Brand 			string
-	Condition 		string
-	Material 		string
 }
 
 type Photo struct{
@@ -39,114 +54,102 @@ type Photo struct{
 	Width 			int32
 }
 
-type Color struct{
-	ID 				primitive.ObjectID
-	Name 			string
-	HexCode 		string
-	Image 			string
+type SendRequest struct {
+	Chat 			Chat
 }
 
-type Products []*Product
-
-type AddToCartRequest struct {
-	UserID 			string
-	Product 		Product
+type SendResponse struct {
+	Sent			bool
 }
 
-type AddToCartResponse struct {
-	Added			bool
+type GetChatRequest struct {
+	SenderID 		string
+	ReceiverID 		string
 }
 
-type DeleteFromCartRequest struct {
-	UserID 			string
-	Product 		Product
+type GetChatResponse struct {
+	Chats 			Chats
 }
 
-type DeleteFromCartResponse struct {
-	Deleted			bool
-}
-
-type GetRequest struct {
+type GetConversationsRequest struct {
 	UserID 			string
 }
 
-type GetResponse struct {
-	Cart 			Cart
+type GetConversationsResponse struct {
+	Conversations 	Conversations
 }
 
-func MarshalAddToCartRequest(req *pb.AddToCartRequest) *AddToCartRequest{
-	return &AddToCartRequest{
-		UserID: 		req.UserId,
-		Product: 		*MarshalProduct(req.Product),
+func MarshalSendRequest(req *pb.SendRequest) *SendRequest{
+	return &SendRequest{
+		Chat: 		*MarshalChat(req.Chat),
 	}
 }
 
-func UnmarshalAddToCartRequest(req *AddToCartRequest) *pb.AddToCartRequest{
-	return &pb.AddToCartRequest{
-		UserId: 		req.UserID,
-		Product: 		UnmarshalProduct(&req.Product),
+func UnmarshalSendRequest(req *SendRequest) *pb.SendRequest{
+	return &pb.SendRequest{
+		Chat: 		UnmarshalChat(&req.Chat),
 	}
 }
 
-func MarshalAddToCartResponse(req *pb.AddToCartResponse) *AddToCartResponse{
-	return &AddToCartResponse{
-		Added: 			req.Added,
+func MarshalSendResponse(req *pb.SendResponse) *SendResponse{
+	return &SendResponse{
+		Sent: 			req.Sent,
 	}
 }
 
-func UnmarshalAddToCartResponse(req *AddToCartResponse) *pb.AddToCartResponse{
-	return &pb.AddToCartResponse{
-		Added: 			req.Added,
+func UnmarshalSendResponse(req *SendResponse) *pb.SendResponse{
+	return &pb.SendResponse{
+		Sent: 			req.Sent,
 	}
 }
 
-func MarshalDeleteFromCartRequest(req *pb.DeleteFromCartRequest) *DeleteFromCartRequest{
-	return &DeleteFromCartRequest{
-		UserID: 		req.UserId,
-		Product: 		*MarshalProduct(req.Product),
+func MarshalGetChatRequest(req *pb.GetChatRequest) *GetChatRequest{
+	return &GetChatRequest{
+		SenderID: 		req.SenderId,
+		ReceiverID: 	req.ReceiverId,
 	}
 }
 
-func UnmarshalDeleteFromCartRequest(req *DeleteFromCartRequest) *pb.DeleteFromCartRequest{
-	return &pb.DeleteFromCartRequest{
-		UserId: 		req.UserID,
-		Product: 		UnmarshalProduct(&req.Product),
+func UnmarshalGetChatRequest(req *GetChatRequest) *pb.GetChatRequest{
+	return &pb.GetChatRequest{
+		SenderId: 		req.SenderID,
+		ReceiverId: 	req.ReceiverID,
 	}
 }
 
-func MarshalDeleteFromCartResponse(req *pb.DeleteFromCartResponse) *DeleteFromCartResponse{
-	return &DeleteFromCartResponse{
-		Deleted: 			req.Deleted,
+func MarshalGetChatResponse(req *pb.GetChatResponse) *GetChatResponse{
+	return &GetChatResponse{
+		Chats: 			MarshalChats(req.Chats),
 	}
 }
 
-func UnmarshalDeleteFromCartResponse(req *DeleteFromCartResponse) *pb.DeleteFromCartResponse{
-	return &pb.DeleteFromCartResponse{
-		Deleted: 			req.Deleted,
+func UnmarshalGetChatResponse(req *GetChatResponse) *pb.GetChatResponse{
+	return &pb.GetChatResponse{
+		Chats: 			UnmarshalChats(req.Chats),
 	}
 }
 
-func MarshalGetRequest(req *pb.GetRequest) *GetRequest{
-	return &GetRequest{
+func MarshalGetConversationsRequest(req *pb.GetConversationsRequest) *GetConversationsRequest{
+	return &GetConversationsRequest{
 		UserID: 		req.UserId,
 	}
 }
 
-func UnmarshalGetRequest(req *GetRequest) *pb.GetRequest{
-	return &pb.GetRequest{
+func UnmarshalGetConversationsRequest(req *GetConversationsRequest) *pb.GetConversationsRequest{
+	return &pb.GetConversationsRequest{
 		UserId: 		req.UserID,
 	}
 }
 
-func MarshalGetResponse(req *pb.GetResponse) *GetResponse{
-	return &GetResponse{
-		Cart: 			*MarshalCart(req.Cart),
+func MarshalGetConversationsResponse(req *pb.GetConversationsResponse) *GetConversationsResponse{
+	return &GetConversationsResponse{
+		Conversations: 			MarshalConversations(req.Conversations),
 	}
 }
 
-func UnmarshalGetResponse(req *GetResponse) *pb.GetResponse{
-	return &pb.GetResponse{
-		Cart: 			UnmarshalCart(&req.Cart),
+func UnmarshalGetConversationsResponse(req *GetConversationsResponse) *pb.GetConversationsResponse{
+	return &pb.GetConversationsResponse{
+		Conversations: 			UnmarshalConversations(req.Conversations),
 	}
 }
 
@@ -157,90 +160,95 @@ func MarshalProduct(product *pb.Product) *Product{
 		Disponible:		product.Disponible,
 		Title:			product.Title,
 		Price:			product.Price,
-		Photos:			MarshalPhotos(product.Photos),
-		Category:		*MarshalCategory(product.Category),
-		Size:			product.Size,
-		Color1:			*MarshalColor(product.Color1),
-		Color2:			*MarshalColor(product.Color2),
-		Brand:			product.Brand,
-		Condition:		product.Condition,
-		Material:		product.Material,
+		Photo:			*MarshalPhoto(product.Photo),
 	}
 }
 
-func UnmarshalProduct(product *Product, userId string) *pb.Product{
+func UnmarshalProduct(product *Product) *pb.Product{
 	return &pb.Product{
 		Id:				product.ID.Hex(),
 		Disponible:		product.Disponible,
 		Title:			product.Title,
 		Price:			product.Price,
-		Photos:			UnmarshalPhotos(product.Photos),
-		Category:		UnmarshalCategory(&product.Category),
-		Size:			product.Size,
-		Color1:			UnmarshalColor(&product.Color1),
-		Color2:			UnmarshalColor(&product.Color2),
-		Brand:			product.Brand,
-		Condition:		product.Condition,
-		Material:		product.Material,
+		Photo:			UnmarshalPhoto(&product.Photo),
 	}
 }
 
-func MarshalProducts(products []*pb.Product) Products {
-	collection := make(Products, 0)
-	for _, product := range products {
-		collection = append(collection, MarshalProduct(product))
+func MarshalChat(chat *pb.Chat) *Chat{
+	objId, _ := primitive.ObjectIDFromHex(chat.Id)
+	return &Chat{
+		ID:				objId,
+		SenderID:		chat.SenderId,
+		ReceiverID:		chat.ReceiverId,
+		Message:		chat.Message,
+		SendAt:			chat.SendAt,
+		Product:		*MarshalProduct(chat.Product),
+	}
+}
+
+func UnmarshalChat(chat *Chat) *pb.Chat{
+	return &pb.Chat{
+		Id:				chat.ID.Hex(),
+		SenderId:		chat.SenderID,
+		ReceiverId:		chat.ReceiverID,
+		Message:		chat.Message,
+		SendAt:			chat.SendAt,
+		Product:		UnmarshalProduct(&chat.Product),
+	}
+}
+
+func MarshalChats(chats []*pb.Chat) Chats {
+	collection := make(Chats, 0)
+	for _, chat := range chats {
+		collection = append(collection, MarshalChat(chat))
 	}
 	return collection
 }
 
-func UnmarshalProducts(products Products) []*pb.Product {
-	collection := make([]*pb.Product, 0)
-	for _, product := range products {
-		collection = append(collection, UnmarshalProduct(product))
+func UnmarshalChats(chats Chats) []*pb.Chat {
+	collection := make([]*pb.Chat, 0)
+	for _, chat := range chats {
+		collection = append(collection, UnmarshalChat(chat))
 	}
 	return collection
 }
 
-func MarshalCart(cart *pb.Cart) *Cart{
-	objId, _ := primitive.ObjectIDFromHex(cart.Id)
-	return &Cart{
-		ID:				objId,
-		UserID:			cart.UserId,
-		Products:		MarshalProducts(cart.Products),
+func MarshalConversation(conversation *pb.Conversation) *Conversation{
+	return &Conversation{
+		SenderID:		conversation.SenderId,
+		ReceiverID:		conversation.ReceiverId,
+		Username:		conversation.Username,
+		Avatar:			*MarshalPhoto(conversation.Avatar),
+		LastChat:		conversation.LastChat,
+		SendAt:			conversation.SendAt,
 	}
 }
 
-func UnmarshalCart(cart *Cart, userId string) *pb.Cart{
-	return &pb.Cart{
-		Id:				cart.ID.Hex(),
-		UserId:			cart.UserID,
-		Products:		UnmarshalProducts(cart.Products),
+func UnmarshalConversation(conversation *Conversation) *pb.Conversation{
+	return &pb.Conversation{
+		SenderId:		conversation.SenderID,
+		ReceiverId:		conversation.ReceiverID,
+		Username:		conversation.Username,
+		Avatar:			UnmarshalPhoto(&conversation.Avatar),
+		LastChat:		conversation.LastChat,
+		SendAt:			conversation.SendAt,
 	}
 }
 
-func MarshalColor(color *pb.Color) *Color{
-	if(color == nil){
-		return &Color{}
+func MarshalConversations(conversations []*pb.Conversation) Conversations {
+	collection := make(Conversations, 0)
+	for _, conversation := range conversations {
+		collection = append(collection, MarshalConversation(conversation))
 	}
-	objId, _ := primitive.ObjectIDFromHex(color.Id)
-	return &Color{
-		ID:				objId,
-		Name:			color.Name,
-		HexCode:		color.HexCode,
-		Image:			color.Image,
-	}
+	return collection
 }
 
-func UnmarshalColor(color *Color) *pb.Color{
-	if(color == nil){
-		return &pb.Color{}
+func UnmarshalConversations(conversations Conversations) []*pb.Conversation {
+	collection := make([]*pb.Conversation, 0)
+	for _, conversation := range conversations {
+		collection = append(collection, UnmarshalConversation(conversation))
 	}
-	return &pb.Color{
-		Id:				color.ID.Hex(),
-		Name:			color.Name,
-		HexCode:		color.HexCode,
-		Image:			color.Image,
-	}
+	return collection
 }
 
 func MarshalPhoto(photo *pb.Photo) *Photo{
@@ -271,17 +279,54 @@ func UnmarshalPhoto(photo *Photo) *pb.Photo{
 }
 
 type repository interface{
-	AddToCart(ctx context.Context, req *pb.AddToCartRequest) (*pb.AddToCartRequest, error)
-	DeleteFromCart(ctx context.Context, req *pb.DeleteFromCartRequest) (*pb.DeleteFromCartRequest, error)
-	GetCart(ctx context.Context, req *pb.GetRequest) (*pb.GetRequest, error)
+	Send(ctx context.Context, chat *Chat) error
+	GetChat(ctx context.Context, req *GetChatRequest) ([]*Chat, error)
+	GetConversations(ctx context.Context, req *GetConversationsRequest) ([]*Conversation, error)
 }
 
 type MongoRepository struct{
-	collection 	*mongo.Collection
+	chatCollection 	*mongo.Collection
 }
 
-func (repo *MongoRepository) AddToCart(ctx context.Context, req *pb.AddToCartRequest) (*pb.AddToCartRequest, error){
-	updated := append(repo.items, req)
-	repo.items = updated
-	return req, nil
+func (repo *MongoRepository) Send(ctx context.Context, chat *Chat) error{
+	chat.SendAt = time.Now().Format("2006-01-02 15:04:05")
+	_, err := repo.chatCollection.InsertOne(ctx, chat)
+	return err
+}
+
+func (repo *MongoRepository) GetChat(ctx context.Context, req *GetChatRequest) ([]*Chat, error){
+	bsonFilters := bson.D{}
+	bsonFilters = append(bsonFilters, bson.E{"user_id", bson.D{bson.E{"$eq", req.SenderID}}})
+	cur, err := repo.chatCollection.Find(ctx,  bsonFilters, options.Find().SetShowRecordID(true))
+	var chats []*Chat
+	for cur.Next(ctx) {
+		var chat *Chat
+		if err := cur.Decode(&chat); err != nil {
+			return nil, err
+		}
+		chats = append(chats, chat)
+	}
+	return chats, err
+}
+
+func (repo *MongoRepository) GetConversations(ctx context.Context, req *GetConversationsRequest) ([]*Conversation, error){
+	matchStage := bson.D{{"$match", bson.D{{"$or", bson.A{bson.D{{"sender_id", req.UserID}}, bson.D{{"receiver_id", req.UserID}}}}}}}
+	groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"receiverid", "$receiver_id"}, {"senderid", "$sender_id"}}}, {"receiverid", bson.D{{"$last", "$receiver_id"}}}, {"senderid", bson.D{{"$last", "$sender_id"}}}, {"sendat", bson.D{{"$max", "$send_at"}}}, {"lastchat", bson.D{{"$last", "$message"}}}}}}
+
+	cur, err := repo.chatCollection.Aggregate(ctx, mongo.Pipeline{matchStage, groupStage})
+	if err != nil {
+		return nil, err
+	}
+	var conversations []*Conversation
+	for cur.Next(ctx) {
+		var conversation *Conversation
+		if err := cur.Decode(&conversation); err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+		fmt.Println(conversation)
+		fmt.Println(*conversation)
+		conversations = append(conversations, conversation)
+	}
+	return conversations, err
 }

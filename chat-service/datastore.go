@@ -1,4 +1,4 @@
-// cart-service/datastore.go
+// chat-service/datastore.go
 
 package main
 

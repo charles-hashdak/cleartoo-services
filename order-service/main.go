@@ -11,7 +11,6 @@ import(
 	pb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
 	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
 	"github.com/micro/go-micro/v2"
-	_ "github.com/asim/nitro-plugins/registry/mdns"
 )
 
 func main(){
