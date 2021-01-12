@@ -43,10 +43,12 @@ func NewUserServiceEndpoints() []*api.Endpoint {
 
 type UserService interface {
 	Create(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
+	Edit(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	Get(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	GetAll(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error)
 	Auth(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	ValidateToken(ctx context.Context, in *Token, opts ...client.CallOption) (*Token, error)
+	Follow(ctx context.Context, in *Follower, opts ...client.CallOption) (*FollowResponse, error)
 }
 
 type userService struct {
@@ -63,6 +65,16 @@ func NewUserService(name string, c client.Client) UserService {
 
 func (c *userService) Create(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error) {
 	req := c.c.NewRequest(c.name, "UserService.Create", in)
+	out := new(Response)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userService) Edit(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "UserService.Edit", in)
 	out := new(Response)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -111,23 +123,37 @@ func (c *userService) ValidateToken(ctx context.Context, in *Token, opts ...clie
 	return out, nil
 }
 
+func (c *userService) Follow(ctx context.Context, in *Follower, opts ...client.CallOption) (*FollowResponse, error) {
+	req := c.c.NewRequest(c.name, "UserService.Follow", in)
+	out := new(FollowResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for UserService service
 
 type UserServiceHandler interface {
 	Create(context.Context, *User, *Response) error
+	Edit(context.Context, *User, *Response) error
 	Get(context.Context, *User, *Response) error
 	GetAll(context.Context, *Request, *Response) error
 	Auth(context.Context, *User, *Response) error
 	ValidateToken(context.Context, *Token, *Token) error
+	Follow(context.Context, *Follower, *FollowResponse) error
 }
 
 func RegisterUserServiceHandler(s server.Server, hdlr UserServiceHandler, opts ...server.HandlerOption) error {
 	type userService interface {
 		Create(ctx context.Context, in *User, out *Response) error
+		Edit(ctx context.Context, in *User, out *Response) error
 		Get(ctx context.Context, in *User, out *Response) error
 		GetAll(ctx context.Context, in *Request, out *Response) error
 		Auth(ctx context.Context, in *User, out *Response) error
 		ValidateToken(ctx context.Context, in *Token, out *Token) error
+		Follow(ctx context.Context, in *Follower, out *FollowResponse) error
 	}
 	type UserService struct {
 		userService
@@ -144,6 +170,10 @@ func (h *userServiceHandler) Create(ctx context.Context, in *User, out *Response
 	return h.UserServiceHandler.Create(ctx, in, out)
 }
 
+func (h *userServiceHandler) Edit(ctx context.Context, in *User, out *Response) error {
+	return h.UserServiceHandler.Edit(ctx, in, out)
+}
+
 func (h *userServiceHandler) Get(ctx context.Context, in *User, out *Response) error {
 	return h.UserServiceHandler.Get(ctx, in, out)
 }
@@ -158,4 +188,8 @@ func (h *userServiceHandler) Auth(ctx context.Context, in *User, out *Response) 
 
 func (h *userServiceHandler) ValidateToken(ctx context.Context, in *Token, out *Token) error {
 	return h.UserServiceHandler.ValidateToken(ctx, in, out)
+}
+
+func (h *userServiceHandler) Follow(ctx context.Context, in *Follower, out *FollowResponse) error {
+	return h.UserServiceHandler.Follow(ctx, in, out)
 }

@@ -5,7 +5,6 @@ import (
 
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"github.com/micro/go-micro/v2"
-	_ "github.com/asim/nitro-plugins/registry/mdns"
 )
 
 const schema = `
@@ -59,7 +58,7 @@ func main() {
 	// Run schema query on start-up, as we're using "create if not exists"
 	// this will only be ran once. In order to create updates, you'll need to
 	// use a migrations library
-	db.AutoMigrate(&pb.User{})
+	db.AutoMigrate(&pb.User{}, &pb.Follower{}, &pb.Rating{})
 
 	repo := &UserRepository{db}
 

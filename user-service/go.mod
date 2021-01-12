@@ -8,7 +8,6 @@ replace (
 )
 
 require (
-	github.com/asim/nitro-plugins/registry/mdns v0.0.0-20201101073154-04271fcbbf50
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/protobuf v1.4.3
 	github.com/jmoiron/sqlx v1.2.0

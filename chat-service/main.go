@@ -1,4 +1,4 @@
-// cart-service/main.go
+// chat-service/main.go
 
 package main
 
@@ -8,15 +8,15 @@ import(
 	"log"
 	"os"
 
-	pb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
+	pb "github.com/charles-hashdak/cleartoo-services/chat-service/proto/chat"
+	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"github.com/micro/go-micro/v2"
-	_ "github.com/asim/nitro-plugins/registry/mdns"
 )
 
 func main(){
 
 	service := micro.NewService(
-		micro.Name("cleartoo.service.chat"),
+		micro.Name("cleartoo.chat"),
 		micro.Version("latest"),
 	)
 
@@ -30,15 +30,15 @@ func main(){
 	}
 	defer client.Disconnect(context.Background())
 
-	cartCollection := client.Database("cleartoo").Collection("chat")
+	chatCollection := client.Database("cleartoo").Collection("chat")
 
-	items := make([]*pb.AddToCartRequest, 0)
+	repository := &MongoRepository{chatCollection}
 
-	repository := &MongoRepository{cartCollection, items}
+	userClient := userPb.NewUserService("cleartoo.user", service.Client())
 
-	h := &handler{repository}
+	h := &handler{repository, userClient}
 
-	if err := pb.RegisterCartServiceHandler(service.Server(), h); err != nil{
+	if err := pb.RegisterChatServiceHandler(service.Server(), h); err != nil{
 		fmt.Println(err)
 	}
 

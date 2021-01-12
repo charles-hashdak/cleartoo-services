@@ -4,10 +4,12 @@ package user;
 
 service UserService {
     rpc Create(User) returns (Response) {}
+    rpc Edit(User) returns (Response) {}
     rpc Get(User) returns (Response) {}
     rpc GetAll(Request) returns (Response) {}
     rpc Auth(User) returns (Response) {}
     rpc ValidateToken(Token) returns (Token) {}
+    rpc Follow(Follower) returns (FollowResponse) {}
 }
 
 message User {
@@ -25,6 +27,19 @@ message User {
     int32 following_count = 12;
 }
 
+message Follower {
+    string id = 1;
+    string follower_id = 2;
+    string user_id = 3;
+}
+
+message Rating {
+    string id = 1;
+    string rater_id = 2;
+    string user_id = 3;
+    float rate = 4;
+}
+
 message Request {}
 
 message Response {
@@ -32,6 +47,15 @@ message Response {
     repeated User users = 2;
     repeated Error errors = 3;
     Token token = 4;
+}
+
+message FollowRequest {
+    string follower_id = 1;
+    string followed_id = 2;
+}
+
+message FollowResponse {
+    bool followed = 1;
 }
 
 message Token {

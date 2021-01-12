@@ -14,6 +14,8 @@ type Repository interface {
 	GetAll() ([]*pb.User, error)
 	Get(id string) (*pb.User, error)
 	Create(user *pb.User) error
+	Edit(user *pb.User) error
+	Follow(req *pb.Follower) error
 	GetByEmail(email string) (*pb.User, error)
 }
 
@@ -58,4 +60,27 @@ func (repo *UserRepository) Create(user *pb.User) error {
 		return err
 	}
 	return nil
+}
+
+func (repo *UserRepository) Edit(user *pb.User) error {
+	if err := repo.db.Save(user).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *UserRepository) Follow(follower *pb.Follower) error {
+	var count int64
+	repo.db.Where("follower_id = ? AND user_id = ?", follower.FollowerId, follower.UserId).Count(&count)
+	if(count > 0){
+		if err := repo.db.Delete(follower).Error; err != nil {
+			return err
+		}
+		return nil
+	}else{
+		if err := repo.db.Create(follower).Error; err != nil {
+			return err
+		}
+		return nil
+	}
 }

@@ -4,7 +4,7 @@ package main
 
 import(
 	"context"
-	"fmt"
+	_ "fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
 )
@@ -76,16 +76,11 @@ func (s *handler) GetCart(ctx context.Context, req *pb.GetRequest, res *pb.GetRe
 func (s *handler) IsInCart(ctx context.Context, req *pb.IsInCartRequest, res *pb.IsInCartResponse) error {
 	isincart, err := s.repository.IsInCart(ctx, MarshalIsInCartRequest(req))
 
-	fmt.Println(isincart)
-
 	if err != nil{
-		fmt.Println(err)
 		return nil
 	}
 
 	res.In = isincart
-
-	fmt.Println(*res)
 
 	return nil
 }

@@ -1,0 +1,100 @@
+// shipping-service/proto/shipping/shipping.proto
+
+syntax = "proto3";
+
+package shipping;
+
+option go_package = "proto/shipping";
+
+service ShippingService{
+	rpc CreateAddress(Address) returns (CreateAddressResponse){}
+
+	rpc GetAddresses(GetRequest) returns (GetAddressesResponse){}
+
+	rpc GetAddress(GetRequest) returns (Address){}
+
+	rpc GetCountries(Request) returns (GetCountriesResponse){}
+
+	rpc GetCities(GetRequest) returns (GetCitiesResponse){}
+
+	rpc GetAddAddressData(Request) returns (GetAddAddressDataResponse){}
+}
+
+message Request {}
+
+message Address{
+	string id = 1;
+	string user_id = 2;
+	string title = 3;
+	string indications = 4;
+	bool is_main = 5;
+	string address_line1 = 6;
+	string address_line2 = 7;
+	Country country = 8;
+	City city = 9;
+	string postal_code = 10;
+	string created_at = 11;
+	string updated_at = 22;
+}
+
+message Shipment{
+	string id = 1;
+	string order_id = 2;
+	string status = 3;
+	string address_id = 4;
+	Method method = 5;
+	string track_url = 6;
+}
+
+message Method{
+	string id = 1;
+	string name = 2;
+	repeated Country countries = 3;
+	repeated City cities = 4;
+}
+
+message Country{
+	string id = 1;
+	string name = 2;
+}
+
+message City{
+	string id = 1;
+	string name = 2;
+	string country_id = 3;
+}
+
+message CreateAddressResponse{
+	bool created = 1;
+	Address address = 2;
+}
+
+message GetRequest{
+	repeated Filter filters = 1;
+	string user_id = 2;
+	string address_id = 3;
+}
+
+message Filter{
+	string key = 1;
+	string value = 2;
+	string condition = 3;
+	bool hex = 4;
+}
+
+message GetAddressesResponse{
+	repeated Address addresses = 1;
+}
+
+message GetCountriesResponse{
+	repeated Country countries = 1;
+}
+
+message GetCitiesResponse{
+	repeated City cities = 1;
+}
+
+message GetAddAddressDataResponse{
+	repeated Country countries = 1;
+	repeated City cities = 2;
+}
