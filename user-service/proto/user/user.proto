@@ -10,6 +10,7 @@ service UserService {
     rpc Auth(User) returns (Response) {}
     rpc ValidateToken(Token) returns (Token) {}
     rpc Follow(Follower) returns (FollowResponse) {}
+    rpc IsFollowing(Follower) returns (IsFollowingResponse) {}
 }
 
 message User {
@@ -56,6 +57,10 @@ message FollowRequest {
 
 message FollowResponse {
     bool followed = 1;
+}
+
+message IsFollowingResponse {
+    bool is_following = 1;
 }
 
 message Token {

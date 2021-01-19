@@ -9,6 +9,8 @@ option go_package = "proto/catalog";
 service CatalogService{
 	rpc CreateProduct(Product) returns (CreateProductResponse){}
 
+	rpc EditProduct(Product) returns (EditProductResponse){}
+
 	rpc GetProducts(GetRequest) returns (GetProductsResponse){}
 
 	rpc GetProduct(GetRequest) returns (Product){}
@@ -36,7 +38,7 @@ message Request {}
 
 message Product{
 	string id = 1;
-	bool disponible = 2;
+	bool available = 2;
 	string title = 3;
 	string description = 4;
 	int32 price = 5;
@@ -145,6 +147,11 @@ message City{
 
 message CreateProductResponse{
 	bool created = 1;
+	Product product = 2;
+}
+
+message EditProductResponse{
+	bool edited = 1;
 	Product product = 2;
 }
 

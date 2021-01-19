@@ -4,6 +4,7 @@ package main
 
 import(
 	"context"
+	"fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/chat-service/proto/chat"
 	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
@@ -42,10 +43,11 @@ func (s *handler) GetConversations(ctx context.Context, req *pb.GetConversations
 		return err
 	}
 	for _, conversation := range conversations {
+		var userId string
 		if conversation.SenderID == req.UserId {
-			userId := conversation.ReceiverID
+			userId = conversation.ReceiverID
 		}else{
-			userId := conversation.SenderID
+			userId = conversation.SenderID
 		}
 		userRes, err2 := s.userClient.Get(ctx, &userPb.User{
 			Id: userId,
@@ -54,8 +56,8 @@ func (s *handler) GetConversations(ctx context.Context, req *pb.GetConversations
 			fmt.Println(err2)
 			return err2
 		}
-		conversation.Avatar.Url = userRes.AvatarUrl
-		conversation.Username = userRes.Username
+		conversation.Avatar.Url = userRes.User.AvatarUrl
+		conversation.Username = userRes.User.Username
 	}
 	res.Conversations = UnmarshalConversations(conversations)
 	return nil

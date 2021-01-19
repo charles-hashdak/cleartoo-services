@@ -16,6 +16,7 @@ type Repository interface {
 	Create(user *pb.User) error
 	Edit(user *pb.User) error
 	Follow(req *pb.Follower) error
+	isFollowing(req *pb.Follower) (boolean, error)
 	GetByEmail(email string) (*pb.User, error)
 }
 
@@ -70,17 +71,30 @@ func (repo *UserRepository) Edit(user *pb.User) error {
 }
 
 func (repo *UserRepository) Follow(follower *pb.Follower) error {
-	var count int64
-	repo.db.Where("follower_id = ? AND user_id = ?", follower.FollowerId, follower.UserId).Count(&count)
-	if(count > 0){
+	isFollowing, isFollowingErr := repo.IsFollowing(follower)
+	if isFollowingErr != nil {
+		return isFollowingErr
+	}
+	if(isFollowing){
 		if err := repo.db.Delete(follower).Error; err != nil {
 			return err
 		}
 		return nil
 	}else{
+		follower.Id = uuid.NewV4().String()
 		if err := repo.db.Create(follower).Error; err != nil {
 			return err
 		}
 		return nil
+	}
+}
+
+func (repo *UserRepository) IsFollowing(follower *pb.Follower) (boolean, error) {
+	var count int64
+	repo.db.Where("follower_id = ? AND user_id = ?", follower.FollowerId, follower.UserId).Count(&count)
+	if(count > 0){
+		return true, nil
+	}else{
+		return false, nil
 	}
 }

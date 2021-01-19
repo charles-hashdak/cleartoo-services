@@ -17,7 +17,6 @@ func main(){
 
 	service := micro.NewService(
 		micro.Name("cleartoo.chat"),
-		micro.Version("latest"),
 	)
 
 	service.Init()

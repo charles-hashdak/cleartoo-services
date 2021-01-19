@@ -278,9 +278,38 @@ type MongoRepository struct{
 }
 
 func (repo *MongoRepository) AddToCart(ctx context.Context, req *AddToCartRequest) error{
+	bsonFilters := bson.D{
+		{"userid", req.UserID},
+	}
+	count, countErr := repo.cartCollection.CountDocuments(ctx, bsonFilters)
+	if countErr != nil {
+		return countErr
+	}
+	if count == 0 {
+		createErr := repo.CreateCart(ctx, &GetRequest{UserID: req.UserID})
+		if createErr != nil {
+			return createErr
+		}
+	}
+	cart, cartErr := repo.GetCart(ctx, &GetRequest{UserID: req.UserID})
+	if cartErr != nil {
+		return cartErr
+	}
+	var valid = true
+	for _, product := range cart.Products {
+		if product.OwnerID != req.UserID {
+			valid = false
+		}
+	}
+	if !valid {
+		emptyErr := repo.EmptyCart(ctx, &GetRequest{UserID: req.UserID})
+		if emptyErr != nil {
+			return emptyErr
+		}
+	}
 	_, err := repo.cartCollection.UpdateOne(
 	    ctx,
-	    bson.M{"user_id": req.UserID},
+	    bson.M{"userid": req.UserID},
 	    bson.D{
 	        {"$push", bson.D{{"products", req.Product}}},
 	    },
@@ -312,7 +341,7 @@ func (repo *MongoRepository) DeleteFromCart(ctx context.Context, req *DeleteFrom
 
 func (repo *MongoRepository) GetCart(ctx context.Context, req *GetRequest) (*Cart, error){
 	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"user_id", bson.D{bson.E{"$eq", req.UserID}}})
+	bsonFilters = append(bsonFilters, bson.E{"userid", bson.D{bson.E{"$eq", req.UserID}}})
 	//bsonFilters = append(bsonFilters, bson.E{"disponible", bson.D{bson.E{"$eq", true}}})
 	var cart *Cart = new(Cart)
 	if err := repo.cartCollection.FindOne(ctx, bsonFilters).Decode(&cart); err != nil {
@@ -332,7 +361,7 @@ func (repo *MongoRepository) CreateCart(ctx context.Context, req *GetRequest) er
 func (repo *MongoRepository) IsInCart(ctx context.Context, req *IsInCartRequest) (bool, error){
 	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
 	bsonFilters := bson.D{
-		{"user_id", req.UserID},
+		{"userid", req.UserID},
 		{"products", bson.D{
 			{"$elemMatch", bson.D{
 				{"id", productId},
@@ -353,7 +382,7 @@ func (repo *MongoRepository) EmptyCart(ctx context.Context, req *GetRequest) err
 	cartProducts := make(Products, 0)
 	_, err := repo.cartCollection.UpdateOne(
 	    ctx,
-	    bson.M{"user_id": req.UserID},
+	    bson.M{"userid": req.UserID},
 	    bson.D{
 	        {"$set", bson.D{
 	        	{"products", cartProducts},
