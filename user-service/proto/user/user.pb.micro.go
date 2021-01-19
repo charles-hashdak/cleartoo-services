@@ -49,6 +49,7 @@ type UserService interface {
 	Auth(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	ValidateToken(ctx context.Context, in *Token, opts ...client.CallOption) (*Token, error)
 	Follow(ctx context.Context, in *Follower, opts ...client.CallOption) (*FollowResponse, error)
+	IsFollowing(ctx context.Context, in *Follower, opts ...client.CallOption) (*IsFollowingResponse, error)
 }
 
 type userService struct {
@@ -133,6 +134,16 @@ func (c *userService) Follow(ctx context.Context, in *Follower, opts ...client.C
 	return out, nil
 }
 
+func (c *userService) IsFollowing(ctx context.Context, in *Follower, opts ...client.CallOption) (*IsFollowingResponse, error) {
+	req := c.c.NewRequest(c.name, "UserService.IsFollowing", in)
+	out := new(IsFollowingResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for UserService service
 
 type UserServiceHandler interface {
@@ -143,6 +154,7 @@ type UserServiceHandler interface {
 	Auth(context.Context, *User, *Response) error
 	ValidateToken(context.Context, *Token, *Token) error
 	Follow(context.Context, *Follower, *FollowResponse) error
+	IsFollowing(context.Context, *Follower, *IsFollowingResponse) error
 }
 
 func RegisterUserServiceHandler(s server.Server, hdlr UserServiceHandler, opts ...server.HandlerOption) error {
@@ -154,6 +166,7 @@ func RegisterUserServiceHandler(s server.Server, hdlr UserServiceHandler, opts .
 		Auth(ctx context.Context, in *User, out *Response) error
 		ValidateToken(ctx context.Context, in *Token, out *Token) error
 		Follow(ctx context.Context, in *Follower, out *FollowResponse) error
+		IsFollowing(ctx context.Context, in *Follower, out *IsFollowingResponse) error
 	}
 	type UserService struct {
 		userService
@@ -192,4 +205,8 @@ func (h *userServiceHandler) ValidateToken(ctx context.Context, in *Token, out *
 
 func (h *userServiceHandler) Follow(ctx context.Context, in *Follower, out *FollowResponse) error {
 	return h.UserServiceHandler.Follow(ctx, in, out)
+}
+
+func (h *userServiceHandler) IsFollowing(ctx context.Context, in *Follower, out *IsFollowingResponse) error {
+	return h.UserServiceHandler.IsFollowing(ctx, in, out)
 }

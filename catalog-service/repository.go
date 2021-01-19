@@ -17,7 +17,7 @@ import(
 
 type Product struct{
 	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
-	Disponible 		bool 				`json:"disponible"`
+	Available 		bool 				`json:"available"`
 	Title 			string 				`json:"title"`
 	Description 	string 				`json:"description"`
 	Price 			int32 				`json:"price"`
@@ -157,7 +157,7 @@ func MarshalProduct(product *pb.Product) *Product{
 	objId, _ := primitive.ObjectIDFromHex(product.Id)
 	return &Product{
 		ID:				objId,
-		Disponible:		product.Disponible,
+		Available:		product.Available,
 		Title:			product.Title,
 		Description:	product.Description,
 		Price:			product.Price,
@@ -191,7 +191,7 @@ func UnmarshalProduct(product *Product, userId string) *pb.Product{
     }
 	return &pb.Product{
 		Id:				product.ID.Hex(),
-		Disponible:		product.Disponible,
+		Available:		product.Available,
 		Title:			product.Title,
 		Description:	product.Description,
 		Price:			product.Price,
@@ -718,6 +718,7 @@ func UnmarshalFilters(filters Filters) []*pb.Filter {
 
 type repository interface{
 	CreateProduct(ctx context.Context, product *Product) error
+	EditProduct(ctx context.Context, product *Product) error
 	GetProducts(ctx context.Context, req *GetRequest) ([]*Product, error)
 	GetProduct(ctx context.Context, req *GetRequest) (*Product, error)
 	Wish(ctx context.Context, req *GetRequest) error
@@ -749,6 +750,12 @@ func (repo *MongoRepository) CreateProduct(ctx context.Context, product *Product
 	return err
 }
 
+func (repo *MongoRepository) EditProduct(ctx context.Context, product *Product) error{
+	product.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+	_, err := repo.productsCollection.UpdateOne(ctx, product)
+	return err
+}
+
 func (repo *MongoRepository) GetProducts(ctx context.Context, req *GetRequest) ([]*Product, error){
 	filters := req.Filters
 	bsonFilters := bson.D{}
@@ -767,7 +774,7 @@ func (repo *MongoRepository) GetProducts(ctx context.Context, req *GetRequest) (
 			bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, f.Value}}})
 		}
 	}
-	//bsonFilters = append(bsonFilters, bson.E{"disponible", bson.D{bson.E{"$eq", true}}})
+	//bsonFilters = append(bsonFilters, bson.E{"available", bson.D{bson.E{"$eq", true}}})
 	cur, err := repo.productsCollection.Find(ctx,  bsonFilters, options.Find().SetShowRecordID(true), options.Find().SetLimit(req.Limit), options.Find().SetSkip(req.Offset))
 	var products []*Product
 	for cur.Next(ctx) {
@@ -785,7 +792,7 @@ func (repo *MongoRepository) GetProduct(ctx context.Context, req *GetRequest) (*
 	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
 	bsonFilters := bson.D{}
 	bsonFilters = append(bsonFilters, bson.E{"_id", bson.D{bson.E{"$eq", productId}}})
-	//bsonFilters = append(bsonFilters, bson.E{"disponible", bson.D{bson.E{"$eq", true}}})
+	//bsonFilters = append(bsonFilters, bson.E{"available", bson.D{bson.E{"$eq", true}}})
 	var product *Product
 	err := repo.productsCollection.FindOne(ctx, bsonFilters, nil).Decode(&product)
 	return product, err
@@ -795,7 +802,7 @@ func (repo *MongoRepository) GetWishes(ctx context.Context, req *GetRequest) ([]
 	userId := req.UserID
 	bsonFilters := bson.D{}
 	bsonFilters = append(bsonFilters, bson.E{"wishers", bson.D{bson.E{"$elemMatch", bson.D{bson.E{"$eq", userId}}}}})
-	//bsonFilters = append(bsonFilters, bson.E{"disponible", bson.D{bson.E{"$eq", true}}})
+	//bsonFilters = append(bsonFilters, bson.E{"Available", bson.D{bson.E{"$eq", true}}})
 	opts := options.Find().SetShowRecordID(true)
 	cur, err := repo.productsCollection.Find(ctx, bsonFilters, opts)
 	var products []*Product

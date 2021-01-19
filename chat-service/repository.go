@@ -9,7 +9,6 @@ import(
 	"fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/chat-service/proto/chat"
-	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

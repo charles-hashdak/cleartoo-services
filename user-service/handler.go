@@ -57,6 +57,15 @@ func (srv *service) Follow(ctx context.Context, follower *pb.Follower, res *pb.F
 	return nil
 }
 
+func (srv *service) IsFollowing(ctx context.Context, follower *pb.Follower, res *pb.IsFollowingResponse) error {
+	isFollowing, err := srv.repo.IsFollowing(follower)
+	if err != nil {
+		return err
+	}
+	res.IsFollowing = isFollowing
+	return nil
+}
+
 func (srv *service) GetAll(ctx context.Context, req *pb.Request, res *pb.Response) error {
 	users, err := srv.repo.GetAll()
 	if err != nil {

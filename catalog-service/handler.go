@@ -29,6 +29,18 @@ func (s *handler) CreateProduct(ctx context.Context, req *pb.Product, res *pb.Cr
 	return nil
 }
 
+func (s *handler) EditProduct(ctx context.Context, req *pb.Product, res *pb.EditProductResponse) error {
+
+	// Save our product
+	if err := s.repository.EditProduct(ctx, MarshalProduct(req)); err != nil {
+		return err
+	}
+
+	res.Edited = true
+	res.Product = req
+	return nil
+}
+
 func (s *handler) GetProducts(ctx context.Context, req *pb.GetRequest, res *pb.GetProductsResponse) error {
 	products, err := s.repository.GetProducts(ctx, MarshalGetRequest(req))
 	if err != nil {
