@@ -5,6 +5,7 @@ package main
 import(
 	"context"
 	"time"
+	"strings"
 
 	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -746,13 +747,16 @@ type MongoRepository struct{
 func (repo *MongoRepository) CreateProduct(ctx context.Context, product *Product) error{
 	product.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
 	product.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+	product.Wishers = []string{}
+	product.WishlistCount = 0
+	product.Offers = Offers{}
 	_, err := repo.productsCollection.InsertOne(ctx, product)
 	return err
 }
 
 func (repo *MongoRepository) EditProduct(ctx context.Context, product *Product) error{
 	product.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
-	_, err := repo.productsCollection.UpdateOne(ctx, product)
+	_, err := repo.productsCollection.UpdateOne(ctx,bson.M{"_id": product.ID} , product)
 	return err
 }
 
@@ -763,19 +767,37 @@ func (repo *MongoRepository) GetProducts(ctx context.Context, req *GetRequest) (
 		if(f.Condition == ""){
 			f.Condition = "$eq";
 		}
-		if(f.Hex == true){
-			objId, _ := primitive.ObjectIDFromHex(f.Value)
-			bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, objId}}})
-		}else if(f.Value == "true"){
-			bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, true}}})
-		}else if(f.Value == "false"){
-			bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, false}}})
+		if(f.Condition == "$in"){
+			newValue := strings.Split(f.Value, ",")
+			if(f.Hex == true){
+				var finalValue []primitive.ObjectID
+				for _, v := range newValue {
+					objId, _ := primitive.ObjectIDFromHex(v)
+					finalValue = append(finalValue, objId)
+				}
+				bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, finalValue}}})
+			}else{
+				finalValue := newValue
+				bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, finalValue}}})
+			}
 		}else{
-			bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, f.Value}}})
+			if(f.Hex == true){
+				objId, _ := primitive.ObjectIDFromHex(f.Value)
+				bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, objId}}})
+			}else if(f.Value == "true"){
+				bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, true}}})
+			}else if(f.Value == "false"){
+				bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, false}}})
+			}else{
+				bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, f.Value}}})
+			}
 		}
 	}
 	//bsonFilters = append(bsonFilters, bson.E{"available", bson.D{bson.E{"$eq", true}}})
 	cur, err := repo.productsCollection.Find(ctx,  bsonFilters, options.Find().SetShowRecordID(true), options.Find().SetLimit(req.Limit), options.Find().SetSkip(req.Offset))
+	if err != nil {
+		return nil, err
+	}
 	var products []*Product
 	for cur.Next(ctx) {
 		var product *Product
