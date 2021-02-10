@@ -15,8 +15,9 @@ type Repository interface {
 	Get(id string) (*pb.User, error)
 	Create(user *pb.User) error
 	Edit(user *pb.User) error
+	ChangePassword(user *pb.User) error
 	Follow(req *pb.Follower) error
-	isFollowing(req *pb.Follower) (boolean, error)
+	IsFollowing(req *pb.Follower) (bool, error)
 	GetByEmail(email string) (*pb.User, error)
 }
 
@@ -64,7 +65,14 @@ func (repo *UserRepository) Create(user *pb.User) error {
 }
 
 func (repo *UserRepository) Edit(user *pb.User) error {
-	if err := repo.db.Save(user).Error; err != nil {
+	if err := repo.db.Model(&user).Updates(map[string]interface{}{"username": user.Username, "description": user.Description}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *UserRepository) ChangePassword(user *pb.User) error {
+	if err := repo.db.Model(&user).Updates(map[string]interface{}{"password": user.Password}).Error; err != nil {
 		return err
 	}
 	return nil
@@ -75,23 +83,40 @@ func (repo *UserRepository) Follow(follower *pb.Follower) error {
 	if isFollowingErr != nil {
 		return isFollowingErr
 	}
+	user, getErr := repo.Get(follower.UserId)
+	if getErr != nil {
+		return getErr
+	}
+	followerUser, getFErr := repo.Get(follower.FollowerId)
+	if getFErr != nil {
+		return getFErr
+	}
 	if(isFollowing){
 		if err := repo.db.Delete(follower).Error; err != nil {
 			return err
 		}
-		return nil
+		user.FollowersCount = user.FollowersCount - 1
+		followerUser.FollowingCount = followerUser.FollowingCount - 1
 	}else{
 		follower.Id = uuid.NewV4().String()
 		if err := repo.db.Create(follower).Error; err != nil {
 			return err
 		}
-		return nil
+		user.FollowersCount = user.FollowersCount + 1
+		followerUser.FollowingCount = followerUser.FollowingCount + 1
 	}
+	if editErr := repo.db.Model(&user).Updates(map[string]interface{}{"followers_count": user.FollowersCount}).Error; editErr != nil {
+		return editErr
+	}
+	if editFErr := repo.db.Model(&followerUser).Updates(map[string]interface{}{"following_count": followerUser.FollowingCount}).Error; editFErr != nil {
+		return editFErr
+	}
+	return nil
 }
 
-func (repo *UserRepository) IsFollowing(follower *pb.Follower) (boolean, error) {
+func (repo *UserRepository) IsFollowing(follower *pb.Follower) (bool, error) {
 	var count int64
-	repo.db.Where("follower_id = ? AND user_id = ?", follower.FollowerId, follower.UserId).Count(&count)
+	repo.db.Table("followers").Where("follower_id = ? AND user_id = ?", follower.FollowerId, follower.UserId).Count(&count)
 	if(count > 0){
 		return true, nil
 	}else{

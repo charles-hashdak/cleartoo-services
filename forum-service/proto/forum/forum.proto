@@ -1,0 +1,62 @@
+// forum-service/proto/forum/forum.proto
+
+syntax = "proto3";
+
+package forum;
+
+option go_package = "proto/forum";
+
+service ForumService{
+	rpc SendComment(Comment) returns (CommentResponse){}
+	rpc GetComments(GetCommentsRequest) returns (GetCommentsResponse){}
+	rpc GetSubjects(GetSubjectsRequest) returns (GetSubjectsResponse){}
+}
+
+message Comment{
+	string id = 1;
+	string user_id = 2;
+	string subject_id = 3;
+	string message = 4;
+	string send_at = 5;
+	string username = 6;
+	Photo avatar = 7;
+}
+
+message Subject{
+	string id = 1;
+	string title = 2;
+	string description = 3;
+	Photo image = 4;
+	string last_comment = 5;
+}
+
+message Photo{
+	string id = 1;
+	string url = 2;
+	bool is_main = 3;
+	int32 height = 4;
+	int32 width = 5;
+}
+
+message CommentRequest{
+	Comment comment = 1;
+}
+
+message CommentResponse{
+	bool commented = 1;
+}
+
+message GetCommentsRequest{
+	string subject_id = 1;
+}
+
+message GetCommentsResponse{
+	repeated Comment comments = 1;
+}
+
+message GetSubjectsRequest{
+}
+
+message GetSubjectsResponse{
+	repeated Subject subjects = 1;
+}

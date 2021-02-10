@@ -49,6 +49,15 @@ services:
       MICRO_REGISTRY: "mdns"
       DB_HOST: "mongodb://localhost:27017"
 
+  forum:
+    restart: always
+    build: ./forum-service
+    network_mode: "host"
+    environment:
+      MICRO_SERVER_ADDRESS: ":50057"
+      MICRO_REGISTRY: "mdns"
+      DB_HOST: "mongodb://localhost:27017"
+
   user:
     restart: always
     build: ./user-service

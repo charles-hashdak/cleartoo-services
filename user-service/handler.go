@@ -153,6 +153,47 @@ func (srv *service) Create(ctx context.Context, req *pb.User, res *pb.Response) 
 	return nil
 }
 
+func (srv *service) ChangePassword(ctx context.Context, req *pb.User, res *pb.Response) error {
+	// Generates a hashed version of our password
+	hashedPass, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New(fmt.Sprintf("error hashing password: %v", err))
+	}
+
+	req.Password = string(hashedPass)
+	if err := srv.repo.ChangePassword(req); err != nil {
+		return errors.New(fmt.Sprintf("error creating user: %v", err))
+	}
+
+	req.Password = "";
+	res.User = req
+
+	return nil
+}
+
+func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Response) error {
+	_, err1 := srv.repo.GetByEmail(req.Email)
+	if err1 != nil {
+		return err1
+	}
+	// Generates a hashed version of our password
+	plainPassword := generatePassword()
+	hashedPass, err := bcrypt.GenerateFromPassword([]byte(plainPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New(fmt.Sprintf("error hashing password: %v", err))
+	}
+
+	req.Password = string(hashedPass)
+	if err := srv.repo.ChangePassword(req); err != nil {
+		return errors.New(fmt.Sprintf("error creating user: %v", err))
+	}
+
+	req.Password = "";
+	res.User = req
+
+	return nil
+}
+
 func (srv *service) ValidateToken(ctx context.Context, req *pb.Token, res *pb.Token) error {
 
 	// Decode token
@@ -169,4 +210,45 @@ func (srv *service) ValidateToken(ctx context.Context, req *pb.Token, res *pb.To
 	res.Valid = true
 
 	return nil
+}
+
+var (
+    lowerCharSet   = "abcdedfghijklmnopqrst"
+    upperCharSet   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    specialCharSet = "!@#$%&*"
+    numberSet      = "0123456789"
+    allCharSet     = lowerCharSet + upperCharSet + specialCharSet + numberSet
+)
+
+func generatePassword() string {
+    var password strings.Builder
+
+    //Set special character
+    for i := 0; i < 1; i++ {
+        random := rand.Intn(len(specialCharSet))
+        password.WriteString(string(specialCharSet[random]))
+    }
+
+    //Set numeric
+    for i := 0; i < 1; i++ {
+        random := rand.Intn(len(numberSet))
+        password.WriteString(string(numberSet[random]))
+    }
+
+    //Set uppercase
+    for i := 0; i < 1; i++ {
+        random := rand.Intn(len(upperCharSet))
+        password.WriteString(string(upperCharSet[random]))
+    }
+
+    remainingLength := 5
+    for i := 0; i < remainingLength; i++ {
+        random := rand.Intn(len(allCharSet))
+        password.WriteString(string(allCharSet[random]))
+    }
+    inRune := []rune(password.String())
+	rand.Shuffle(len(inRune), func(i, j int) {
+		inRune[i], inRune[j] = inRune[j], inRune[i]
+	})
+	return string(inRune)
 }

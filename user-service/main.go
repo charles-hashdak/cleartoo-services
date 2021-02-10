@@ -67,6 +67,7 @@ func main() {
 	// Create a new service. Optionally include some options here.
 	srv := micro.NewService(
 		micro.Name("cleartoo.user"),
+		micro.Version("latest"),
 	)
 
 	// Init will parse the command line flags.

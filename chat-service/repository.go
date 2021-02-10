@@ -6,13 +6,13 @@ import(
 	"context"
 	_ "log"
 	"time"
-	"fmt"
+	_ "fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/chat-service/proto/chat"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	_ "go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Chat struct{
@@ -294,9 +294,10 @@ func (repo *MongoRepository) Send(ctx context.Context, chat *Chat) error{
 }
 
 func (repo *MongoRepository) GetChat(ctx context.Context, req *GetChatRequest) ([]*Chat, error){
-	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"user_id", bson.D{bson.E{"$eq", req.SenderID}}})
-	cur, err := repo.chatCollection.Find(ctx,  bsonFilters, options.Find().SetShowRecordID(true))
+	matchStage := bson.D{{"$match", bson.D{{"$or", bson.A{bson.D{{"senderid", req.SenderID}, {"receiverid", req.ReceiverID}}, bson.D{{"receiverid", req.SenderID}, {"senderid", req.ReceiverID}}}}}}}
+	projectStage := bson.D{{"$project", bson.D{{"message", "$message"}, {"receiverid", "$receiverid"}, {"senderid", "$senderid"}, {"sendat", "$sendat"}}}}
+
+	cur, err := repo.chatCollection.Aggregate(ctx, mongo.Pipeline{matchStage, projectStage})
 	var chats []*Chat
 	for cur.Next(ctx) {
 		var chat *Chat
@@ -309,8 +310,8 @@ func (repo *MongoRepository) GetChat(ctx context.Context, req *GetChatRequest) (
 }
 
 func (repo *MongoRepository) GetConversations(ctx context.Context, req *GetConversationsRequest) ([]*Conversation, error){
-	matchStage := bson.D{{"$match", bson.D{{"$or", bson.A{bson.D{{"sender_id", req.UserID}}, bson.D{{"receiver_id", req.UserID}}}}}}}
-	groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"receiverid", "$receiver_id"}, {"senderid", "$sender_id"}}}, {"receiverid", bson.D{{"$last", "$receiver_id"}}}, {"senderid", bson.D{{"$last", "$sender_id"}}}, {"sendat", bson.D{{"$max", "$send_at"}}}, {"lastchat", bson.D{{"$last", "$message"}}}}}}
+	matchStage := bson.D{{"$match", bson.D{{"$or", bson.A{bson.D{{"senderid", req.UserID}}, bson.D{{"receiverid", req.UserID}}}}}}}
+	groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"receiverid", "$receiverid"}, {"senderid", "$senderid"}}}, {"receiverid", bson.D{{"$last", "$receiverid"}}}, {"senderid", bson.D{{"$last", "$senderid"}}}, {"sendat", bson.D{{"$max", "$sendat"}}}, {"lastchat", bson.D{{"$last", "$message"}}}}}}
 
 	cur, err := repo.chatCollection.Aggregate(ctx, mongo.Pipeline{matchStage, groupStage})
 	if err != nil {
@@ -320,11 +321,8 @@ func (repo *MongoRepository) GetConversations(ctx context.Context, req *GetConve
 	for cur.Next(ctx) {
 		var conversation *Conversation
 		if err := cur.Decode(&conversation); err != nil {
-			fmt.Println(err)
 			return nil, err
 		}
-		fmt.Println(conversation)
-		fmt.Println(*conversation)
 		conversations = append(conversations, conversation)
 	}
 	return conversations, err
