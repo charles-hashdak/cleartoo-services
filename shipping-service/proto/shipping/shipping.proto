@@ -18,6 +18,8 @@ service ShippingService{
 	rpc GetCities(GetRequest) returns (GetCitiesResponse){}
 
 	rpc GetAddAddressData(Request) returns (GetAddAddressDataResponse){}
+
+	rpc GetShippingFees(GetShippingFeesRequest) returns (GetShippingFeesResponse){}
 }
 
 message Request {}
@@ -42,7 +44,7 @@ message Shipment{
 	string order_id = 2;
 	string status = 3;
 	string address_id = 4;
-	Method method = 5;
+	string method = 5;
 	string track_url = 6;
 }
 
@@ -97,4 +99,13 @@ message GetCitiesResponse{
 message GetAddAddressDataResponse{
 	repeated Country countries = 1;
 	repeated City cities = 2;
+}
+
+message GetShippingFeesRequest{
+	string shipping_method = 1;
+	int32 weight = 2;
+}
+
+message GetShippingFeesResponse{
+	int32 shipping_fees = 1;
 }

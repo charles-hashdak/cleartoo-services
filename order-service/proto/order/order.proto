@@ -1,4 +1,4 @@
-// cart-service/proto/cart/cart.proto
+// order-service/proto/order/order.proto
 
 syntax = "proto3";
 
@@ -8,9 +8,16 @@ option go_package = "proto/order";
 
 service OrderService{
 	rpc Order(OrderRequest) returns (OrderResponse){}
+	rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse){}
+	rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse){}
 	rpc GetSales(GetRequest) returns (GetResponse){}
 	rpc GetOrders(GetRequest) returns (GetResponse){}
 	rpc GetSingleOrder(GetSingleRequest) returns (GetSingleResponse){}
+	rpc GetWallet(GetWalletRequest) returns (GetWalletResponse){}
+	rpc InitializeWallet(InitializeWalletRequest) returns (InitializeWalletResponse){}
+	rpc UpdateWallet(UpdateWalletRequest) returns (UpdateWalletResponse){}
+	rpc AddTransaction(AddTransactionRequest) returns (AddTransactionResponse){}
+	rpc GetInTransitOrders(GetRequest) returns (GetResponse){}
 }
 
 message Order{
@@ -40,6 +47,20 @@ message Product{
 	string condition = 11;
 	string material = 12;
 	string owner_id = 13;
+}
+
+message Wallet{
+	string id = 1;
+	string user_id = 2;
+	int64 balance = 3;
+}
+
+message Transaction{
+	string id = 1;
+	string wallet_id = 2;
+	int64 amount = 3;
+	string type = 4;
+	string order_id = 5;
 }
 
 message Photo{
@@ -75,6 +96,25 @@ message DeleteFromOrderResponse{
 	bool deleted = 1;
 }
 
+message CancelOrderRequest{
+	string order_id = 1;
+	string user_id = 2;
+}
+
+message CancelOrderResponse{
+	bool canceled = 1;
+}
+
+message UpdateOrderStatusRequest{
+	string order_id = 1;
+	string user_id = 2;
+}
+
+message UpdateOrderStatusResponse{
+	bool updated = 1;
+	string status = 2;
+}
+
 message GetRequest{
 	string user_id = 1;
 }
@@ -89,4 +129,36 @@ message GetSingleRequest{
 
 message GetSingleResponse{
 	Order order = 1;
+}
+
+message GetWalletRequest{
+	string wallet_id = 1;
+}
+
+message GetWalletResponse{
+	Wallet wallet = 1;
+}
+
+message InitializeWalletRequest{
+	string user_id = 1;
+}
+
+message InitializeWalletResponse{
+	bool added = 1;
+}
+
+message UpdateWalletRequest{
+	Wallet wallet = 1;
+}
+
+message UpdateWalletResponse{
+	bool edited = 1;
+}
+
+message AddTransactionRequest{
+	Transaction transaction = 1;
+}
+
+message AddTransactionResponse{
+	bool added = 1;
 }

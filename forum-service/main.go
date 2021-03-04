@@ -32,7 +32,7 @@ func main(){
 	subjectCollection := client.Database("cleartoo").Collection("subject")
 	commentCollection := client.Database("cleartoo").Collection("comment")
 
-	repository := &MongoRepository{forumCollection}
+	repository := &MongoRepository{subjectCollection, commentCollection}
 
 	userClient := userPb.NewUserService("cleartoo.user", service.Client())
 

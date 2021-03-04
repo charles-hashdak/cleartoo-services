@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+  	"net/smtp"
 	"errors"
 	"log"
 	"context"
@@ -112,12 +113,9 @@ func (srv *service) Auth(ctx context.Context, req *pb.User, res *pb.Response) er
 }
 
 func (srv *service) Create(ctx context.Context, req *pb.User, res *pb.Response) error {
-
-	log.Println("Creating user: ", req)
-
-	var usernameId = 1000 + rand.Intn(9999-1000)
-	req.Username = strings.Split(req.Email, string('@'))[0] + strconv.Itoa(usernameId)
 	req.Rating = 0;
+  	req.AvatarUrl= ""
+  	req.CoverUrl= ""
 	req.FollowersCount = 0;
 	req.FollowingCount = 0;
 
@@ -153,6 +151,55 @@ func (srv *service) Create(ctx context.Context, req *pb.User, res *pb.Response) 
 	return nil
 }
 
+func (srv *service) FacebookLogin(ctx context.Context, req *pb.User, res *pb.Response) error {
+	user, err := srv.repo.GetByEmail(req.Email)
+	if err != nil {
+		return err
+	}
+	if(user.Email != req.Email){
+		var usernameId = 1000 + rand.Intn(9999-1000)
+		req.Username = strings.Split(user.Email, string('@'))[0] + strconv.Itoa(usernameId)
+      	req.Name= ""
+      	req.Company= ""
+      	req.Description= ""
+      	req.Rating= 0
+      	req.AvatarUrl= ""
+      	req.CoverUrl= ""
+      	req.FollowersCount= 0
+      	req.FollowingCount= 0
+		if err = srv.repo.Create(req); err != nil {
+			return errors.New(fmt.Sprintf("error creating user: %v", err))
+		}
+
+		token, refreshToken, err := srv.tokenService.Encode(req)
+		if err != nil {
+			return err
+		}
+		header := metadata.New(map[string]string{"Set-Cookie": "refresh-jwt="+refreshToken+"; Max-Age=5256000; SameSite=none"})
+		if err = grpc.SendHeader(ctx, header); err != nil {
+			return status.Errorf(codes.Internal, "unable to send 'Set-Cookie' header")
+		}
+
+		req.Password = "";
+		res.User = req
+		res.Token = &pb.Token{Token: token}
+	}else{
+		token, refreshToken, err := srv.tokenService.Encode(user)
+		if err != nil {
+			return err
+		}
+		header := metadata.New(map[string]string{"Set-Cookie": "refresh-jwt="+refreshToken+"; Max-Age=5256000; SameSite=none"})
+		if err = grpc.SendHeader(ctx, header); err != nil {
+			return status.Errorf(codes.Internal, "unable to send 'Set-Cookie' header")
+		}
+
+		req.Password = "";
+		res.User = user
+		res.Token = &pb.Token{Token: token}
+	}
+	return nil
+}
+
 func (srv *service) ChangePassword(ctx context.Context, req *pb.User, res *pb.Response) error {
 	// Generates a hashed version of our password
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -172,9 +219,12 @@ func (srv *service) ChangePassword(ctx context.Context, req *pb.User, res *pb.Re
 }
 
 func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Response) error {
-	_, err1 := srv.repo.GetByEmail(req.Email)
+	user, err1 := srv.repo.GetByEmail(req.Email)
 	if err1 != nil {
 		return err1
+	}
+	if(user.Email != req.Email){
+		return errors.New(fmt.Sprintf("account not found"))
 	}
 	// Generates a hashed version of our password
 	plainPassword := generatePassword()
@@ -186,6 +236,30 @@ func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Res
 	req.Password = string(hashedPass)
 	if err := srv.repo.ChangePassword(req); err != nil {
 		return errors.New(fmt.Sprintf("error creating user: %v", err))
+	}
+
+	from := "info@shiftdakar.com"
+	password := "Shift784512!"
+
+	// Receiver email address.
+	to := []string{
+		req.Email,
+	}
+
+	// smtp server configuration.
+	smtpHost := "vmi449068.contaboserver.net"
+	smtpPort := "587"
+
+	// Message.
+	message := []byte("New password = "+plainPassword)
+
+	// Authentication.
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	// Sending email.
+	mailErr := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
+	if mailErr != nil {
+		return mailErr
 	}
 
 	req.Password = "";

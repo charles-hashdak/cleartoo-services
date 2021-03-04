@@ -26,6 +26,20 @@ type Order struct{
 	PaymentID 		string 				`json:"payment_id"`
 }
 
+type Wallet struct{
+	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
+	UserID 			string 				`json:"user_id"`
+	Balance 		int64 				`json:"balance"`
+}
+
+type Transaction struct{
+	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
+	WalletID 		string 				`json:"wallet_id"`
+	Amount 			int64 				`json:"amount"`
+	Type 			string 				`json:"type"`
+	OrderID 		string 				`json:"order_id"`
+}
+
 type Product struct{
 	ID 				primitive.ObjectID
 	Disponible 		bool
@@ -87,6 +101,41 @@ type GetSingleRequest struct {
 
 type GetResponse struct {
 	Order 			Order
+}
+
+type GetWalletRequest struct {
+	WalletID 		string
+}
+
+type InitializeWalletRequest struct {
+	UserID 			string
+}
+
+type UpdateWalletRequest struct {
+	Wallet			Wallet
+}
+
+type AddTransactionRequest struct {
+	Transaction		Transaction
+}
+
+type CancelOrderRequest struct {
+	OrderID 		string
+	UserID 			string
+}
+
+type CancelOrderResponse struct {
+	Canceled 		bool
+}
+
+type UpdateOrderStatusRequest struct {
+	OrderID 		string
+	UserID 			string
+}
+
+type UpdateOrderStatusResponse struct {
+	Updated 		bool
+	Status 			string
 }
 
 func MarshalOrderRequest(req *pb.OrderRequest) *OrderRequest{
@@ -165,6 +214,44 @@ func UnmarshalGetRequest(req *GetRequest) *pb.GetRequest{
 	}
 }
 
+func MarshalGetWalletRequest(req *pb.GetWalletRequest) *GetWalletRequest{
+	return &GetWalletRequest{
+		WalletID: 		req.WalletId,
+	}
+}
+
+func MarshalInitializeWalletRequest(req *pb.InitializeWalletRequest) *InitializeWalletRequest{
+	return &InitializeWalletRequest{
+		UserID: 		req.UserId,
+	}
+}
+
+func MarshalUpdateWalletRequest(req *pb.UpdateWalletRequest) *UpdateWalletRequest{
+	return &UpdateWalletRequest{
+		Wallet: 		*MarshalWallet(req.Wallet),
+	}
+}
+
+func MarshalAddTransactionRequest(req *pb.AddTransactionRequest) *AddTransactionRequest{
+	return &AddTransactionRequest{
+		Transaction: 	*MarshalTransaction(req.Transaction),
+	}
+}
+
+func MarshalCancelOrderRequest(req *pb.CancelOrderRequest) *CancelOrderRequest{
+	return &CancelOrderRequest{
+		OrderID: 		req.OrderId,
+		UserID: 		req.UserId,
+	}
+}
+
+func MarshalUpdateOrderStatusRequest(req *pb.UpdateOrderStatusRequest) *UpdateOrderStatusRequest{
+	return &UpdateOrderStatusRequest{
+		OrderID: 		req.OrderId,
+		UserID: 		req.UserId,
+	}
+}
+
 func MarshalProduct(product *pb.Product) *Product{
 	objId, _ := primitive.ObjectIDFromHex(product.Id)
 	return &Product{
@@ -216,6 +303,44 @@ func UnmarshalProducts(products Products) []*pb.Product {
 		collection = append(collection, UnmarshalProduct(product))
 	}
 	return collection
+}
+
+func MarshalWallet(wallet *pb.Wallet) *Wallet{
+	objId, _ := primitive.ObjectIDFromHex(wallet.Id)
+	return &Wallet{
+		ID:				objId,
+		UserID:			wallet.UserId,
+		Balance:		wallet.Balance,
+	}
+}
+
+func UnmarshalWallet(wallet *Wallet) *pb.Wallet{
+	return &pb.Wallet{
+		Id:				wallet.ID.Hex(),
+		UserId:			wallet.UserID,
+		Balance:		wallet.Balance,
+	}
+}
+
+func MarshalTransaction(transaction *pb.Transaction) *Transaction{
+	objId, _ := primitive.ObjectIDFromHex(transaction.Id)
+	return &Transaction{
+		ID:				objId,
+		WalletID:		transaction.WalletId,
+		Type:			transaction.Type,
+		Amount:			transaction.Amount,
+		OrderID:		transaction.OrderId,
+	}
+}
+
+func UnmarshalTransaction(transaction *Transaction) *pb.Transaction{
+	return &pb.Transaction{
+		Id:				transaction.ID.Hex(),
+		WalletId:		transaction.WalletID,
+		Type:			transaction.Type,
+		Amount:			transaction.Amount,
+		OrderId:		transaction.OrderID,
+	}
 }
 
 func MarshalOrder(order *pb.Order) *Order{
@@ -313,11 +438,20 @@ type repository interface{
 	Order(ctx context.Context, req *OrderRequest) error
 	GetSingleOrder(ctx context.Context, req *GetSingleRequest) (*Order, error)
 	GetOrders(ctx context.Context, req *GetRequest) ([]*Order, error)
+	GetInTransitOrders(ctx context.Context, req *GetRequest) ([]*Order, error)
 	GetSales(ctx context.Context, req *GetRequest) ([]*Order, error)
+	GetWallet(ctx context.Context, req *GetWalletRequest) (*Wallet, error)
+	InitializeWallet(ctx context.Context, req *InitializeWalletRequest) error
+	UpdateWallet(ctx context.Context, req *UpdateWalletRequest) error
+	UpdateOrderStatus(ctx context.Context, req *UpdateOrderStatusRequest) (string, error)
+	CancelOrder(ctx context.Context, req *CancelOrderRequest) error
+	AddTransaction(ctx context.Context, req *AddTransactionRequest) error
 }
 
 type MongoRepository struct{
-	orderCollection 	*mongo.Collection
+	orderCollection 		*mongo.Collection
+	walletCollection 		*mongo.Collection
+	transactionCollection 	*mongo.Collection
 }
 
 func (repo *MongoRepository) GetSingleOrder(ctx context.Context, req *GetSingleRequest) (*Order, error){
@@ -350,6 +484,22 @@ func (repo *MongoRepository) GetOrders(ctx context.Context, req *GetRequest) ([]
 	return orders, err
 }
 
+func (repo *MongoRepository) GetInTransitOrders(ctx context.Context, req *GetRequest) ([]*Order, error){
+	bsonFilters := bson.D{}
+	bsonFilters = append(bsonFilters, bson.E{"status", bson.D{bson.E{"$eq", "sent"}}})
+	opts := options.Find().SetShowRecordID(true)
+	cur, err := repo.orderCollection.Find(ctx,  bsonFilters, opts)
+	var orders []*Order
+	for cur.Next(ctx) {
+		var order *Order
+		if err := cur.Decode(&order); err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+	return orders, err
+}
+
 func (repo *MongoRepository) GetSales(ctx context.Context, req *GetRequest) ([]*Order, error){
 	bsonFilters := bson.D{}
 	bsonFilters = append(bsonFilters, bson.E{"products.ownerid", bson.D{bson.E{"$elemMatch", req.UserID}}})
@@ -364,4 +514,41 @@ func (repo *MongoRepository) GetSales(ctx context.Context, req *GetRequest) ([]*
 		orders = append(orders, order)
 	}
 	return orders, err
+}
+
+func (repo *MongoRepository) GetWallet(ctx context.Context, req *GetWalletRequest) (*Wallet, error){
+	bsonFilters := bson.D{}
+	bsonFilters = append(bsonFilters, bson.E{"_id", bson.D{bson.E{"$eq", req.WalletID}}})
+	var wallet *Wallet
+	err := repo.walletCollection.FindOne(ctx, bsonFilters, nil).Decode(&wallet)
+	return wallet, err
+}
+
+func (repo *MongoRepository) InitializeWallet(ctx context.Context, req *InitializeWalletRequest) error{
+	wallet := &Wallet{
+		UserID: req.UserID,
+		Balance: 0,
+	}
+	_, err := repo.walletCollection.InsertOne(ctx, wallet)
+	return err
+}
+
+func (repo *MongoRepository) AddTransaction(ctx context.Context, req *AddTransactionRequest) error{
+	_, err := repo.transactionCollection.InsertOne(ctx, req.Transaction)
+	return err
+}
+
+func (repo *MongoRepository) UpdateWallet(ctx context.Context, req *UpdateWalletRequest) error{
+	_, err := repo.walletCollection.UpdateOne(ctx,bson.M{"_id": req.Wallet.ID} , req.Wallet)
+	return err
+}
+
+func (repo *MongoRepository) UpdateOrderStatus(ctx context.Context, req *UpdateOrderStatusRequest) (string, error){
+	_, err := repo.orderCollection.UpdateOne(ctx,bson.M{"_id": req.OrderID} , bson.M{"status": "confirmed"})
+	return "confirmed", err
+}
+
+func (repo *MongoRepository) CancelOrder(ctx context.Context, req *CancelOrderRequest) error{
+	_, err := repo.orderCollection.UpdateOne(ctx,bson.M{"_id": req.OrderID} , bson.M{"status": "canceled"})
+	return err
 }

@@ -1,10 +1,6 @@
 package main
 
 import (
-	"strings"
-	"strconv"
-	"math/rand"
-
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -53,8 +49,8 @@ func (repo *UserRepository) GetByEmail(email string) (*pb.User, error) {
 
 func (repo *UserRepository) Create(user *pb.User) error {
 	user.Id = uuid.NewV4().String()
-	var usernameId = 1000 + rand.Intn(9999-1000)
-	user.Username = strings.Split(user.Email, string('@'))[0] + strconv.Itoa(usernameId)
+	// var usernameId = 1000 + rand.Intn(9999-1000)
+	// user.Username = strings.Split(user.Email, string('@'))[0] + strconv.Itoa(usernameId)
 	user.Rating = 0;
 	user.FollowersCount = 0;
 	user.FollowingCount = 0;
@@ -65,7 +61,7 @@ func (repo *UserRepository) Create(user *pb.User) error {
 }
 
 func (repo *UserRepository) Edit(user *pb.User) error {
-	if err := repo.db.Model(&user).Updates(map[string]interface{}{"username": user.Username, "description": user.Description}).Error; err != nil {
+	if err := repo.db.Model(&user).Updates(map[string]interface{}{"username": user.Username, "description": user.Description, "avatar_url": user.AvatarUrl, "cover_url": user.CoverUrl, "age": user.Age}).Error; err != nil {
 		return err
 	}
 	return nil

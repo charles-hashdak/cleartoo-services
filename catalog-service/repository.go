@@ -40,6 +40,7 @@ type Product struct{
 	UpdatedAt 		string 				`json:"updated_at"`
 	ViewCount 		int32 				`json:"view_count"`
 	Offers 			Offers 				`json:"offers"`
+	Weight 			int32 				`json:"weight"`
 	InCart 			bool
 }
 
@@ -180,6 +181,7 @@ func MarshalProduct(product *pb.Product) *Product{
 		UpdatedAt:		product.UpdatedAt,
 		ViewCount:		product.ViewCount,
 		Offers:			MarshalOffers(product.Offers),
+		Weight:			product.Weight,
 	}
 }
 
@@ -214,6 +216,7 @@ func UnmarshalProduct(product *Product, userId string) *pb.Product{
 		ViewCount:		product.ViewCount,
 		Wished:			wished,
 		Offers:			UnmarshalOffers(product.Offers),
+		Weight:			product.Weight,
 		InCart:			product.InCart,
 	}
 }

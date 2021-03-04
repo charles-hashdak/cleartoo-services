@@ -76,3 +76,12 @@ func (s *handler) GetAddAddressData(ctx context.Context, req *pb.Request, res *p
 	res.Cities = UnmarshalCities(cities)
 	return nil;
 }
+
+func (s *handler) GetShippingFees(ctx context.Context, req *pb.GetShippingFeesRequest, res *pb.GetShippingFeesResponse) error {
+	shippingFees, err := s.repository.GetShippingFees(ctx, MarshalGetShippingFeesRequest(req))
+	if err != nil {
+		return err
+	}
+	res.ShippingFees = shippingFees
+	return nil;
+}

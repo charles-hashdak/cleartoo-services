@@ -1,4 +1,4 @@
-// chat-service/datastore.go
+// forum-service/datastore.go
 
 package main
 

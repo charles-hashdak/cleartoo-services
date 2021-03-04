@@ -147,7 +147,7 @@ func MarshalComment(comment *pb.Comment) *Comment{
 		Message:		comment.Message,
 		Username:		comment.Username,
 		SendAt:			comment.SendAt,
-		Avatar:			*MarshalPhoto(subject.Avatar),
+		Avatar:			*MarshalPhoto(comment.Avatar),
 	}
 }
 
@@ -159,7 +159,7 @@ func UnmarshalComment(comment *Comment) *pb.Comment{
 		Message:		comment.Message,
 		Username:		comment.Username,
 		SendAt:			comment.SendAt,
-		Avatar:			UnmarshalPhoto(&subject.Avatar),
+		Avatar:			UnmarshalPhoto(&comment.Avatar),
 	}
 }
 
@@ -192,7 +192,7 @@ func MarshalSubject(subject *pb.Subject) *Subject{
 
 func UnmarshalSubject(subject *Subject) *pb.Subject{
 	return &pb.Subject{
-		Id:				comment.ID.Hex(),
+		Id:				subject.ID.Hex(),
 		Title:			subject.Title,
 		Description:	subject.Description,
 		Image:			UnmarshalPhoto(&subject.Image),
@@ -250,7 +250,7 @@ type repository interface{
 }
 
 type MongoRepository struct{
-	topicCollection 	*mongo.Collection
+	subjectCollection 	*mongo.Collection
 	commentCollection 	*mongo.Collection
 }
 
@@ -262,7 +262,8 @@ func (repo *MongoRepository) Comment(ctx context.Context, comment *Comment) erro
 
 func (repo *MongoRepository) GetComments(ctx context.Context, req *GetCommentsRequest) ([]*Comment, error){
 	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"subject_id", bson.D{bson.E{"$eq", primitive.ObjectIDFromHex(req.SubjectID)}}})
+	subjectId, _ := primitive.ObjectIDFromHex(req.SubjectID)
+	bsonFilters = append(bsonFilters, bson.E{"subject_id", bson.D{bson.E{"$eq", subjectId}}})
 	cur, err := repo.commentCollection.Find(ctx,  bsonFilters)
 	//cur, err := repo.commentCollection.Find(ctx,  bsonFilters, options.Find().SetShowRecordID(true), options.Find().SetLimit(req.Limit), options.Find().SetSkip(req.Offset))
 	var comments []*Comment

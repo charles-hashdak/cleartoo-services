@@ -43,7 +43,10 @@ func NewUserServiceEndpoints() []*api.Endpoint {
 
 type UserService interface {
 	Create(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
+	FacebookLogin(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	Edit(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
+	ChangePassword(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
+	ResetPassword(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	Get(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	GetAll(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error)
 	Auth(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
@@ -74,8 +77,38 @@ func (c *userService) Create(ctx context.Context, in *User, opts ...client.CallO
 	return out, nil
 }
 
+func (c *userService) FacebookLogin(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "UserService.FacebookLogin", in)
+	out := new(Response)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userService) Edit(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error) {
 	req := c.c.NewRequest(c.name, "UserService.Edit", in)
+	out := new(Response)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userService) ChangePassword(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "UserService.ChangePassword", in)
+	out := new(Response)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userService) ResetPassword(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "UserService.ResetPassword", in)
 	out := new(Response)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -148,7 +181,10 @@ func (c *userService) IsFollowing(ctx context.Context, in *Follower, opts ...cli
 
 type UserServiceHandler interface {
 	Create(context.Context, *User, *Response) error
+	FacebookLogin(context.Context, *User, *Response) error
 	Edit(context.Context, *User, *Response) error
+	ChangePassword(context.Context, *User, *Response) error
+	ResetPassword(context.Context, *User, *Response) error
 	Get(context.Context, *User, *Response) error
 	GetAll(context.Context, *Request, *Response) error
 	Auth(context.Context, *User, *Response) error
@@ -160,7 +196,10 @@ type UserServiceHandler interface {
 func RegisterUserServiceHandler(s server.Server, hdlr UserServiceHandler, opts ...server.HandlerOption) error {
 	type userService interface {
 		Create(ctx context.Context, in *User, out *Response) error
+		FacebookLogin(ctx context.Context, in *User, out *Response) error
 		Edit(ctx context.Context, in *User, out *Response) error
+		ChangePassword(ctx context.Context, in *User, out *Response) error
+		ResetPassword(ctx context.Context, in *User, out *Response) error
 		Get(ctx context.Context, in *User, out *Response) error
 		GetAll(ctx context.Context, in *Request, out *Response) error
 		Auth(ctx context.Context, in *User, out *Response) error
@@ -183,8 +222,20 @@ func (h *userServiceHandler) Create(ctx context.Context, in *User, out *Response
 	return h.UserServiceHandler.Create(ctx, in, out)
 }
 
+func (h *userServiceHandler) FacebookLogin(ctx context.Context, in *User, out *Response) error {
+	return h.UserServiceHandler.FacebookLogin(ctx, in, out)
+}
+
 func (h *userServiceHandler) Edit(ctx context.Context, in *User, out *Response) error {
 	return h.UserServiceHandler.Edit(ctx, in, out)
+}
+
+func (h *userServiceHandler) ChangePassword(ctx context.Context, in *User, out *Response) error {
+	return h.UserServiceHandler.ChangePassword(ctx, in, out)
+}
+
+func (h *userServiceHandler) ResetPassword(ctx context.Context, in *User, out *Response) error {
+	return h.UserServiceHandler.ResetPassword(ctx, in, out)
 }
 
 func (h *userServiceHandler) Get(ctx context.Context, in *User, out *Response) error {

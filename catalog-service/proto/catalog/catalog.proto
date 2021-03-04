@@ -62,6 +62,7 @@ message Product{
 	bool wished = 23;
 	bool in_cart = 24;
 	repeated Offer offers = 25;
+	int32 weight = 26;
 }
 
 message Gender{
