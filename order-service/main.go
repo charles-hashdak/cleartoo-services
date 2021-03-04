@@ -30,8 +30,10 @@ func main(){
 	defer client.Disconnect(context.Background())
 
 	orderCollection := client.Database("cleartoo").Collection("order")
+	walletCollection := client.Database("cleartoo").Collection("wallet")
+	transactionCollection := client.Database("cleartoo").Collection("transaction")
 
-	repository := &MongoRepository{orderCollection}
+	repository := &MongoRepository{orderCollection, walletCollection, transactionCollection}
 
 	cartClient := cartPb.NewCartService("cleartoo.cart", service.Client())
 

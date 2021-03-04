@@ -4,6 +4,7 @@ package user;
 
 service UserService {
     rpc Create(User) returns (Response) {}
+    rpc FacebookLogin(User) returns (Response) {}
     rpc Edit(User) returns (Response) {}
     rpc ChangePassword(User) returns (Response) {}
     rpc ResetPassword(User) returns (Response) {}
@@ -28,6 +29,8 @@ message User {
     string cover_url = 10;
     int32 followers_count = 11;
     int32 following_count = 12;
+    int32 age = 13;
+    string fb_token = 14;
 }
 
 message Follower {

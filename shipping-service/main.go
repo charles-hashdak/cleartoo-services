@@ -33,8 +33,9 @@ func main(){
 	methodsCollection := client.Database("cleartoo").Collection("methods")
 	countriesCollection := client.Database("cleartoo").Collection("countries")
 	citiesCollection := client.Database("cleartoo").Collection("cities")
+	shippingFeesCollection := client.Database("cleartoo").Collection("shipping_prices")
 
-	repository := &MongoRepository{addressesCollection, shipmentsCollection, methodsCollection, countriesCollection, citiesCollection}
+	repository := &MongoRepository{addressesCollection, shipmentsCollection, methodsCollection, countriesCollection, citiesCollection, shippingFeesCollection}
 
 	h := &handler{repository}
 

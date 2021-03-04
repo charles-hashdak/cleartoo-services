@@ -29,7 +29,7 @@ func (s *handler) SendComment(ctx context.Context, comment *pb.Comment, res *pb.
 }
 
 func (s *handler) GetComments(ctx context.Context, req *pb.GetCommentsRequest, res *pb.GetCommentsResponse) error {
-	comments, err := s.repository.GetComment(ctx, MarshalGetCommentsRequest(req))
+	comments, err := s.repository.GetComments(ctx, MarshalGetCommentsRequest(req))
 	if err != nil {
 		return err
 	}

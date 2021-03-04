@@ -48,6 +48,7 @@ type ShippingService interface {
 	GetCountries(ctx context.Context, in *Request, opts ...client.CallOption) (*GetCountriesResponse, error)
 	GetCities(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetCitiesResponse, error)
 	GetAddAddressData(ctx context.Context, in *Request, opts ...client.CallOption) (*GetAddAddressDataResponse, error)
+	GetShippingFees(ctx context.Context, in *GetShippingFeesRequest, opts ...client.CallOption) (*GetShippingFeesResponse, error)
 }
 
 type shippingService struct {
@@ -122,6 +123,16 @@ func (c *shippingService) GetAddAddressData(ctx context.Context, in *Request, op
 	return out, nil
 }
 
+func (c *shippingService) GetShippingFees(ctx context.Context, in *GetShippingFeesRequest, opts ...client.CallOption) (*GetShippingFeesResponse, error) {
+	req := c.c.NewRequest(c.name, "ShippingService.GetShippingFees", in)
+	out := new(GetShippingFeesResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for ShippingService service
 
 type ShippingServiceHandler interface {
@@ -131,6 +142,7 @@ type ShippingServiceHandler interface {
 	GetCountries(context.Context, *Request, *GetCountriesResponse) error
 	GetCities(context.Context, *GetRequest, *GetCitiesResponse) error
 	GetAddAddressData(context.Context, *Request, *GetAddAddressDataResponse) error
+	GetShippingFees(context.Context, *GetShippingFeesRequest, *GetShippingFeesResponse) error
 }
 
 func RegisterShippingServiceHandler(s server.Server, hdlr ShippingServiceHandler, opts ...server.HandlerOption) error {
@@ -141,6 +153,7 @@ func RegisterShippingServiceHandler(s server.Server, hdlr ShippingServiceHandler
 		GetCountries(ctx context.Context, in *Request, out *GetCountriesResponse) error
 		GetCities(ctx context.Context, in *GetRequest, out *GetCitiesResponse) error
 		GetAddAddressData(ctx context.Context, in *Request, out *GetAddAddressDataResponse) error
+		GetShippingFees(ctx context.Context, in *GetShippingFeesRequest, out *GetShippingFeesResponse) error
 	}
 	type ShippingService struct {
 		shippingService
@@ -175,4 +188,8 @@ func (h *shippingServiceHandler) GetCities(ctx context.Context, in *GetRequest, 
 
 func (h *shippingServiceHandler) GetAddAddressData(ctx context.Context, in *Request, out *GetAddAddressDataResponse) error {
 	return h.ShippingServiceHandler.GetAddAddressData(ctx, in, out)
+}
+
+func (h *shippingServiceHandler) GetShippingFees(ctx context.Context, in *GetShippingFeesRequest, out *GetShippingFeesResponse) error {
+	return h.ShippingServiceHandler.GetShippingFees(ctx, in, out)
 }

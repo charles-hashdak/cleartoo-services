@@ -35,7 +35,7 @@ type Shipment struct{
 	OrderID 		string				`json:"order_id"`
 	Status 			string 				`json:"status"`
 	AddressID 		string				`json:"address_id"`
-	Method 			Method 				`json:"method"`
+	Method 			string 				`json:"method"`
 	TrackUrl 		string 				`json:"track_url"`
 }
 
@@ -54,6 +54,11 @@ type GetRequest struct{
 	Filters 		Filters
 	UserID 			string
 	AddressID 		string
+}
+
+type GetShippingFeesRequest struct{
+	ShippingMethod	string
+	Weight			int32
 }
 
 type Request struct{}
@@ -76,6 +81,16 @@ type City struct{
 	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
 	Name 			string 				`json:"name"`
 	CountryID 		string 				`json:"country_id"`
+}
+
+type ShippingFees struct{
+	ShippingMethod 	string
+	ShippingFees 	[]*ShippingFee
+}
+
+type ShippingFee struct{
+	Weight 			int32
+	Price 			int32
 }
 
 // Utils functions to marshal and unmarshal between protobuff and mongodb
@@ -122,7 +137,7 @@ func MarshalShipment(shipment *pb.Shipment) *Shipment{
 		OrderID: 		shipment.OrderId,
 		Status: 		shipment.Status,
 		AddressID: 		shipment.AddressId,
-		Method: 		*MarshalMethod(shipment.Method),
+		Method: 		shipment.Method,
 		TrackUrl: 		shipment.TrackUrl,
 	}
 }
@@ -133,7 +148,7 @@ func UnmarshalShipment(shipment *Shipment) *pb.Shipment{
 		OrderId: 		shipment.OrderID,
 		Status: 		shipment.Status,
 		AddressId: 		shipment.AddressID,
-		Method: 		UnmarshalMethod(&shipment.Method),
+		Method: 		shipment.Method,
 		TrackUrl: 		shipment.TrackUrl,
 	}
 }
@@ -249,6 +264,13 @@ func UnmarshalGetRequest(req *GetRequest) *pb.GetRequest{
 	}
 }
 
+func MarshalGetShippingFeesRequest(req *pb.GetShippingFeesRequest) *GetShippingFeesRequest{
+	return &GetShippingFeesRequest{
+		ShippingMethod: req.ShippingMethod,
+		Weight: 		req.Weight,
+	}
+}
+
 func MarshalRequest(req *pb.Request) *Request{
 	return &Request{}
 }
@@ -307,6 +329,7 @@ type repository interface{
 	GetAddress(ctx context.Context, req *GetRequest) (*Address, error)
 	GetCountries(ctx context.Context, req *Request) ([]*Country, error)
 	GetCities(ctx context.Context, req *GetRequest) ([]*City, error)
+	GetShippingFees(ctx context.Context, req *GetShippingFeesRequest) (int32, error)
 }
 
 type MongoRepository struct{
@@ -315,6 +338,7 @@ type MongoRepository struct{
 	methodsCollection *mongo.Collection
 	countriesCollection *mongo.Collection
 	citiesCollection *mongo.Collection
+	shippingFeesCollection *mongo.Collection
 }
 
 func (repo *MongoRepository) CreateAddress(ctx context.Context, address *Address) error{
@@ -409,4 +433,18 @@ func (repo *MongoRepository) GetCities(ctx context.Context, req *GetRequest) ([]
 		cities = append(cities, city)
 	}
 	return cities, err
+}
+
+func (repo *MongoRepository) GetShippingFees(ctx context.Context, req *GetShippingFeesRequest) (int32, error){
+	bsonFilters := bson.D{}
+	bsonFilters = append(bsonFilters, bson.E{"shipping_method", bson.D{bson.E{"$eq", req.ShippingMethod}}})
+	var shippingFees *ShippingFees
+	err := repo.shippingFeesCollection.FindOne(ctx, bsonFilters, nil).Decode(&shippingFees)
+	var price int32
+	for _, fees := range shippingFees.ShippingFees {
+		if req.Weight > fees.Weight {
+			price = fees.Price
+		}
+	}
+	return price, err
 }

@@ -21,6 +21,7 @@ const schema = `
 		cover_url varchar(225),
 		followers_count int,
 		following_count int,
+		age int,
 		primary key (id)
 	);
 
