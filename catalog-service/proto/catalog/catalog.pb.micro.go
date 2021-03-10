@@ -44,6 +44,8 @@ func NewCatalogServiceEndpoints() []*api.Endpoint {
 type CatalogService interface {
 	CreateProduct(ctx context.Context, in *Product, opts ...client.CallOption) (*CreateProductResponse, error)
 	EditProduct(ctx context.Context, in *Product, opts ...client.CallOption) (*EditProductResponse, error)
+	CreateOffer(ctx context.Context, in *CreateOfferRequest, opts ...client.CallOption) (*CreateOfferResponse, error)
+	EditOffer(ctx context.Context, in *Offer, opts ...client.CallOption) (*EditOfferResponse, error)
 	GetProducts(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetProductsResponse, error)
 	GetProduct(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*Product, error)
 	Wish(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*WishResponse, error)
@@ -82,6 +84,26 @@ func (c *catalogService) CreateProduct(ctx context.Context, in *Product, opts ..
 func (c *catalogService) EditProduct(ctx context.Context, in *Product, opts ...client.CallOption) (*EditProductResponse, error) {
 	req := c.c.NewRequest(c.name, "CatalogService.EditProduct", in)
 	out := new(EditProductResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogService) CreateOffer(ctx context.Context, in *CreateOfferRequest, opts ...client.CallOption) (*CreateOfferResponse, error) {
+	req := c.c.NewRequest(c.name, "CatalogService.CreateOffer", in)
+	out := new(CreateOfferResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogService) EditOffer(ctx context.Context, in *Offer, opts ...client.CallOption) (*EditOfferResponse, error) {
+	req := c.c.NewRequest(c.name, "CatalogService.EditOffer", in)
+	out := new(EditOfferResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -204,6 +226,8 @@ func (c *catalogService) GetAddProductData(ctx context.Context, in *Request, opt
 type CatalogServiceHandler interface {
 	CreateProduct(context.Context, *Product, *CreateProductResponse) error
 	EditProduct(context.Context, *Product, *EditProductResponse) error
+	CreateOffer(context.Context, *CreateOfferRequest, *CreateOfferResponse) error
+	EditOffer(context.Context, *Offer, *EditOfferResponse) error
 	GetProducts(context.Context, *GetRequest, *GetProductsResponse) error
 	GetProduct(context.Context, *GetRequest, *Product) error
 	Wish(context.Context, *GetRequest, *WishResponse) error
@@ -221,6 +245,8 @@ func RegisterCatalogServiceHandler(s server.Server, hdlr CatalogServiceHandler, 
 	type catalogService interface {
 		CreateProduct(ctx context.Context, in *Product, out *CreateProductResponse) error
 		EditProduct(ctx context.Context, in *Product, out *EditProductResponse) error
+		CreateOffer(ctx context.Context, in *CreateOfferRequest, out *CreateOfferResponse) error
+		EditOffer(ctx context.Context, in *Offer, out *EditOfferResponse) error
 		GetProducts(ctx context.Context, in *GetRequest, out *GetProductsResponse) error
 		GetProduct(ctx context.Context, in *GetRequest, out *Product) error
 		Wish(ctx context.Context, in *GetRequest, out *WishResponse) error
@@ -250,6 +276,14 @@ func (h *catalogServiceHandler) CreateProduct(ctx context.Context, in *Product, 
 
 func (h *catalogServiceHandler) EditProduct(ctx context.Context, in *Product, out *EditProductResponse) error {
 	return h.CatalogServiceHandler.EditProduct(ctx, in, out)
+}
+
+func (h *catalogServiceHandler) CreateOffer(ctx context.Context, in *CreateOfferRequest, out *CreateOfferResponse) error {
+	return h.CatalogServiceHandler.CreateOffer(ctx, in, out)
+}
+
+func (h *catalogServiceHandler) EditOffer(ctx context.Context, in *Offer, out *EditOfferResponse) error {
+	return h.CatalogServiceHandler.EditOffer(ctx, in, out)
 }
 
 func (h *catalogServiceHandler) GetProducts(ctx context.Context, in *GetRequest, out *GetProductsResponse) error {

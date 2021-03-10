@@ -8,29 +8,19 @@ option go_package = "proto/catalog";
 
 service CatalogService{
 	rpc CreateProduct(Product) returns (CreateProductResponse){}
-
 	rpc EditProduct(Product) returns (EditProductResponse){}
-
+	rpc CreateOffer(CreateOfferRequest) returns (CreateOfferResponse){}
+	rpc EditOffer(Offer) returns (EditOfferResponse){}
 	rpc GetProducts(GetRequest) returns (GetProductsResponse){}
-
 	rpc GetProduct(GetRequest) returns (Product){}
-
 	rpc Wish(GetRequest) returns (WishResponse){}
-
 	rpc GetWishes(GetRequest) returns (GetProductsResponse){}
-
 	rpc GetSizes(GetRequest) returns (GetSizesResponse){}
-
 	rpc GetGenders(Request) returns (GetGendersResponse){}
-
 	rpc GetCategories(GetRequest) returns (GetCategoriesResponse){}
-
 	rpc GetBrands(Request) returns (GetBrandsResponse){}
-
 	rpc GetColors(Request) returns (GetColorsResponse){}
-
 	rpc GetConditions(Request) returns (GetConditionsResponse){}
-
 	rpc GetAddProductData(Request) returns (GetAddProductDataResponse){}
 }
 
@@ -154,6 +144,21 @@ message CreateProductResponse{
 message EditProductResponse{
 	bool edited = 1;
 	Product product = 2;
+}
+
+message CreateOfferRequest{
+	string product_id = 1;
+	Offer offer = 2;
+}
+
+message CreateOfferResponse{
+	bool created = 1;
+	Offer offer = 2;
+}
+
+message EditOfferResponse{
+	bool edited = 1;
+	Offer offer = 2;
 }
 
 message WishResponse{

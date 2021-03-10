@@ -28,6 +28,7 @@ message Conversation{
 	Photo avatar = 4;
 	string last_chat = 5;
 	string send_at = 6;
+	Product product = 7;
 }
 
 message Product{
@@ -57,6 +58,7 @@ message SendResponse{
 message GetChatRequest{
 	string sender_id = 1;
 	string receiver_id = 2;
+	string product_id = 3;
 }
 
 message GetChatResponse{

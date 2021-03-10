@@ -33,6 +33,7 @@ type Conversation struct{
 	Avatar 			Photo
 	LastChat		string
 	SendAt			string
+	Product 		Product
 }
 
 type Conversations []*Conversation
@@ -106,6 +107,7 @@ func MarshalGetChatRequest(req *pb.GetChatRequest) *GetChatRequest{
 	return &GetChatRequest{
 		SenderID: 		req.SenderId,
 		ReceiverID: 	req.ReceiverId,
+		ProductID: 		req.ProductId,
 	}
 }
 
@@ -113,6 +115,7 @@ func UnmarshalGetChatRequest(req *GetChatRequest) *pb.GetChatRequest{
 	return &pb.GetChatRequest{
 		SenderId: 		req.SenderID,
 		ReceiverId: 	req.ReceiverID,
+		ProductId: 		req.ProductID,
 	}
 }
 
@@ -220,6 +223,7 @@ func MarshalConversation(conversation *pb.Conversation) *Conversation{
 		Avatar:			*MarshalPhoto(conversation.Avatar),
 		LastChat:		conversation.LastChat,
 		SendAt:			conversation.SendAt,
+		Product:		*MarshalProduct(conversation.Product),
 	}
 }
 
@@ -231,6 +235,7 @@ func UnmarshalConversation(conversation *Conversation) *pb.Conversation{
 		Avatar:			UnmarshalPhoto(&conversation.Avatar),
 		LastChat:		conversation.LastChat,
 		SendAt:			conversation.SendAt,
+		Product:		UnmarshalProduct(&conversation.Product),
 	}
 }
 
@@ -294,8 +299,24 @@ func (repo *MongoRepository) Send(ctx context.Context, chat *Chat) error{
 }
 
 func (repo *MongoRepository) GetChat(ctx context.Context, req *GetChatRequest) ([]*Chat, error){
-	matchStage := bson.D{{"$match", bson.D{{"$or", bson.A{bson.D{{"senderid", req.SenderID}, {"receiverid", req.ReceiverID}}, bson.D{{"receiverid", req.SenderID}, {"senderid", req.ReceiverID}}}}}}}
-	projectStage := bson.D{{"$project", bson.D{{"message", "$message"}, {"receiverid", "$receiverid"}, {"senderid", "$senderid"}, {"sendat", "$sendat"}}}}
+	matchStage := bson.D{
+		{"$match", bson.D{
+			{"$or", bson.A{
+				bson.D{
+					{"senderid", req.SenderID},
+					{"receiverid", req.ReceiverID}
+				}, 
+				bson.D{
+					{"receiverid", req.SenderID},
+					{"senderid", req.ReceiverID}
+				}
+			}},
+			bson.D{
+				{"product.id", req.ProductID},
+			}
+		}}
+	}
+	projectStage := bson.D{{"$project", bson.D{{"message", "$message"}, {"receiverid", "$receiverid"}, {"senderid", "$senderid"}, {"sendat", "$sendat"}, {"product", "$product"}}}}
 
 	cur, err := repo.chatCollection.Aggregate(ctx, mongo.Pipeline{matchStage, projectStage})
 	var chats []*Chat
@@ -311,7 +332,7 @@ func (repo *MongoRepository) GetChat(ctx context.Context, req *GetChatRequest) (
 
 func (repo *MongoRepository) GetConversations(ctx context.Context, req *GetConversationsRequest) ([]*Conversation, error){
 	matchStage := bson.D{{"$match", bson.D{{"$or", bson.A{bson.D{{"senderid", req.UserID}}, bson.D{{"receiverid", req.UserID}}}}}}}
-	groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"receiverid", "$receiverid"}, {"senderid", "$senderid"}}}, {"receiverid", bson.D{{"$last", "$receiverid"}}}, {"senderid", bson.D{{"$last", "$senderid"}}}, {"sendat", bson.D{{"$max", "$sendat"}}}, {"lastchat", bson.D{{"$last", "$message"}}}}}}
+	groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"receiverid", "$receiverid"}, {"senderid", "$senderid"}, {"product", "$product"}}}, {"receiverid", bson.D{{"$last", "$receiverid"}}}, {"senderid", bson.D{{"$last", "$senderid"}}}, {"sendat", bson.D{{"$max", "$sendat"}}}, {"lastchat", bson.D{{"$last", "$message"}}}, {"product", bson.D{{"$last", "$product"}}}}}}
 
 	cur, err := repo.chatCollection.Aggregate(ctx, mongo.Pipeline{matchStage, groupStage})
 	if err != nil {
