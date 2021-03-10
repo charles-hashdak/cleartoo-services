@@ -41,6 +41,30 @@ func (s *handler) EditProduct(ctx context.Context, req *pb.Product, res *pb.Edit
 	return nil
 }
 
+func (s *handler) CreateOffer(ctx context.Context, req *pb.CreateOfferRequest, res *pb.CreateOfferResponse) error {
+
+	// Save our offer
+	if err := s.repository.CreateOffer(ctx, MarshalCreateOfferRequest(req)); err != nil {
+		return err
+	}
+
+	res.Created = true
+	res.Offer = req
+	return nil
+}
+
+func (s *handler) EditOffer(ctx context.Context, req *pb.Offer, res *pb.EditOfferResponse) error {
+
+	// Save our offer
+	if err := s.repository.EditOffer(ctx, MarshalOffer(req)); err != nil {
+		return err
+	}
+
+	res.Edited = true
+	res.Offer = req
+	return nil
+}
+
 func (s *handler) GetProducts(ctx context.Context, req *pb.GetRequest, res *pb.GetProductsResponse) error {
 	products, err := s.repository.GetProducts(ctx, MarshalGetRequest(req))
 	if err != nil {

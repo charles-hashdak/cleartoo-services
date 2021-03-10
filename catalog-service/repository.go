@@ -91,6 +91,11 @@ type Offer struct{
 
 type Offers []*Offer
 
+type CreateOfferRequest struct{
+	ProductID 		string
+	Offer 			Offer
+}
+
 type GetRequest struct{
 	Filters 		Filters
 	UserID 			string
@@ -612,6 +617,13 @@ func UnmarshalGetRequest(req *GetRequest) *pb.GetRequest{
 	}
 }
 
+func MarshalCreateOfferRequest(req *pb.CreateOfferRequest) *CreateOfferRequest{
+	return &CreateOfferRequest{
+		ProductID: 		req.ProductId,
+		Offer: 			req.Offer,
+	}
+}
+
 func MarshalRequest(req *pb.Request) *Request{
 	return &Request{}
 }
@@ -723,6 +735,8 @@ func UnmarshalFilters(filters Filters) []*pb.Filter {
 type repository interface{
 	CreateProduct(ctx context.Context, product *Product) error
 	EditProduct(ctx context.Context, product *Product) error
+	CreateOffer(ctx context.Context, offer *CreateOfferRequest) error
+	EditOffer(ctx context.Context, offer *Offer) error
 	GetProducts(ctx context.Context, req *GetRequest) ([]*Product, error)
 	GetProduct(ctx context.Context, req *GetRequest) (*Product, error)
 	Wish(ctx context.Context, req *GetRequest) error
@@ -760,6 +774,28 @@ func (repo *MongoRepository) CreateProduct(ctx context.Context, product *Product
 func (repo *MongoRepository) EditProduct(ctx context.Context, product *Product) error{
 	product.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
 	_, err := repo.productsCollection.UpdateOne(ctx,bson.M{"_id": product.ID} , product)
+	return err
+}
+
+func (repo *MongoRepository) CreateOffer(ctx context.Context, offer *Offer) error{
+	_, err := repo.productsCollection.UpdateOne(
+	    ctx,
+	    bson.M{"id": req.ProductID},
+	    bson.D{
+	        {"$push", bson.D{{"offers", req.Offer}}},
+	    },
+	)
+	return err
+}
+
+func (repo *MongoRepository) EditOffer(ctx context.Context, offer *Offer) error{
+	_, err := repo.productsCollection.UpdateOne(
+	    ctx,
+	    bson.M{"id": req.ProductID},
+	    bson.D{
+	        {"$push", bson.D{{"offers", req.Offer}}},
+	    },
+	)
 	return err
 }
 

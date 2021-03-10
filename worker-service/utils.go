@@ -9,6 +9,9 @@ import (
 
 func checkInTransit(ctx context.Context, orderClient orderPb.OrderService) error {
 	ordersRes, err := orderClient.GetInTransitOrders(ctx, &orderPb.GetRequest{})
+	if err != nil {
+		return err
+	}
 	orders := ordersRes.Orders
 	for _, order := range orders {
 		fmt.Println("order")
