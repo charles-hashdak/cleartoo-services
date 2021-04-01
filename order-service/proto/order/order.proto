@@ -29,13 +29,14 @@ message Order{
 	int32 taxes = 6;
 	int32 total = 7;
 	string status = 8;
-	string shipping_id = 9;
-	string payment_id = 10;
+	string shipping_method = 9;
+	string payment_method = 10;
+	string address_id = 11;
 }
 
 message Product{
 	string id = 1;
-	bool disponible = 2;
+	bool available = 2;
 	string title = 3;
 	int32 price = 4;
 	Photo photo = 5;
@@ -47,6 +48,13 @@ message Product{
 	string condition = 11;
 	string material = 12;
 	string owner_id = 13;
+}
+
+message Card{
+   string number = 1;
+   int32 expiration_month = 2;
+   int32 expiration_year = 3;
+   int32 cvv = 4;
 }
 
 message Wallet{
@@ -81,6 +89,7 @@ message Color{
 message OrderRequest{
 	string user_id = 1;
 	Order order = 2;
+	Card card = 3;
 }
 
 message OrderResponse{

@@ -49,7 +49,7 @@ func (s *handler) CreateOffer(ctx context.Context, req *pb.CreateOfferRequest, r
 	}
 
 	res.Created = true
-	res.Offer = req
+	res.Offer = req.Offer
 	return nil
 }
 

@@ -53,6 +53,7 @@ message Product{
 	bool in_cart = 24;
 	repeated Offer offers = 25;
 	int32 weight = 26;
+	bool deleted = 27;
 }
 
 message Gender{
@@ -94,6 +95,8 @@ message Offer{
 	string user_id = 2;
 	int32 amount = 3;
 	string status = 4;
+	string created_at = 5;
+	string updated_at = 6;
 }
 
 message Thumbnail{

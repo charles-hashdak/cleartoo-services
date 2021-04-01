@@ -4,6 +4,19 @@ package main
 
 import(
 	"context"
+	"fmt"
+	"errors"
+	"net/http"
+	"math/rand"
+	_ "strings"
+	"io"
+	"strconv"
+	_ "net/url"
+	"bytes"
+	"time"
+    "crypto/hmac"
+    "crypto/sha256"
+    "encoding/base64"
 	_ "log"
 
 	pb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
@@ -22,8 +35,15 @@ type Order struct{
 	Taxes 			int32 				`json:"taxes"`
 	Total 			int32 				`json:"total"`
 	Status 			string 				`json:"status"`
-	ShippingID 		string 				`json:"shipping_id"`
-	PaymentID 		string 				`json:"payment_id"`
+	ShippingMethod 	string 				`json:"shipping_method"`
+	PaymentMethod 	string 				`json:"payment_method"`
+}
+
+type Card struct{
+	Number 			string
+	ExpirationMonth int32
+	ExpirationYear 	int32
+	Cvv 			int32
 }
 
 type Wallet struct{
@@ -42,7 +62,7 @@ type Transaction struct{
 
 type Product struct{
 	ID 				primitive.ObjectID
-	Disponible 		bool
+	Available 		bool
 	Title 			string
 	Price 			int32
 	Photo 			Photo
@@ -76,6 +96,7 @@ type Products []*Product
 type OrderRequest struct {
 	UserID 			string
 	Order 			Order
+	Card 			Card
 }
 
 type OrderResponse struct {
@@ -142,6 +163,7 @@ func MarshalOrderRequest(req *pb.OrderRequest) *OrderRequest{
 	return &OrderRequest{
 		UserID: 		req.UserId,
 		Order: 			*MarshalOrder(req.Order),
+		Card: 			*MarshalCard(req.Card),
 	}
 }
 
@@ -161,6 +183,7 @@ func UnmarshalOrderRequest(req *OrderRequest) *pb.OrderRequest{
 	return &pb.OrderRequest{
 		UserId: 		req.UserID,
 		Order: 			UnmarshalOrder(&req.Order),
+		Card: 			UnmarshalCard(&req.Card),
 	}
 }
 
@@ -252,11 +275,29 @@ func MarshalUpdateOrderStatusRequest(req *pb.UpdateOrderStatusRequest) *UpdateOr
 	}
 }
 
+func MarshalCard(card *pb.Card) *Card{
+	return &Card{
+		Number:			card.Number,
+		ExpirationMonth:card.ExpirationMonth,
+		ExpirationYear:	card.ExpirationYear,
+		Cvv:			card.Cvv,
+	}
+}
+
+func UnmarshalCard(card *Card) *pb.Card{
+	return &pb.Card{
+		Number:			card.Number,
+		ExpirationMonth:card.ExpirationMonth,
+		ExpirationYear:	card.ExpirationYear,
+		Cvv:			card.Cvv,
+	}
+}
+
 func MarshalProduct(product *pb.Product) *Product{
 	objId, _ := primitive.ObjectIDFromHex(product.Id)
 	return &Product{
 		ID:				objId,
-		Disponible:		product.Disponible,
+		Available:		product.Available,
 		Title:			product.Title,
 		Price:			product.Price,
 		Photo:			*MarshalPhoto(product.Photo),
@@ -274,7 +315,7 @@ func MarshalProduct(product *pb.Product) *Product{
 func UnmarshalProduct(product *Product) *pb.Product{
 	return &pb.Product{
 		Id:				product.ID.Hex(),
-		Disponible:		product.Disponible,
+		Available:		product.Available,
 		Title:			product.Title,
 		Price:			product.Price,
 		Photo:			UnmarshalPhoto(&product.Photo),
@@ -354,8 +395,8 @@ func MarshalOrder(order *pb.Order) *Order{
 		Taxes:			order.Taxes,
 		Total:			order.Total,
 		Status:			order.Status,
-		ShippingID:		order.ShippingId,
-		PaymentID:		order.PaymentId,
+		ShippingMethod:	order.ShippingMethod,
+		PaymentMethod:	order.PaymentMethod,
 	}
 }
 
@@ -369,8 +410,8 @@ func UnmarshalOrder(order *Order) *pb.Order{
 		Taxes:			order.Taxes,
 		Total:			order.Total,
 		Status:			order.Status,
-		ShippingId:		order.ShippingID,
-		PaymentId:		order.PaymentID,
+		ShippingMethod:	order.ShippingMethod,
+		PaymentMethod:	order.PaymentMethod,
 	}
 }
 
@@ -457,13 +498,63 @@ type MongoRepository struct{
 func (repo *MongoRepository) GetSingleOrder(ctx context.Context, req *GetSingleRequest) (*Order, error){
 	bsonFilters := bson.D{}
 	bsonFilters = append(bsonFilters, bson.E{"_id", bson.D{bson.E{"$eq", req.OrderID}}})
-	//bsonFilters = append(bsonFilters, bson.E{"disponible", bson.D{bson.E{"$eq", true}}})
+	//bsonFilters = append(bsonFilters, bson.E{"available", bson.D{bson.E{"$eq", true}}})
 	var order *Order
 	err := repo.orderCollection.FindOne(ctx, bsonFilters, nil).Decode(&order)
 	return order, err
 }
 
 func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error{
+	if req.Order.PaymentMethod == "card" {
+		hc := http.Client{}
+		form := []byte(`{
+		   "amount": ${strconv.Itoa(int(req.Order.Total))},
+		   "currency": "THB",
+		   "payment_method": {
+		       "type": "th_visa_card",
+		       "fields": {
+		           "number": "4111111111111111",
+		           "expiration_month": "10",
+		           "expiration_year": "21",
+		           "cvv": "123",
+		       },
+		   },
+		  "error_payment_url": "https://error_example.net",
+		  "capture": true}`)
+		httpReq, err := http.NewRequest("POST", "https://sandboxapi.rapyd.net/v1/payments", bytes.NewBuffer(form))
+		http_method := "post"
+		url_path := "/v1/payments"
+		salt := strconv.Itoa(10000000 + rand.Intn(99999999-10000000))
+		timestamp := strconv.Itoa(int(time.Now().Unix()))
+		body_string := form
+		access_key := "CA818DDE1BDFE4CEDFFA"
+		secret_key := "fea7f18fb788775d863870685b98078b9ab91e19ed13d5218b901b51968e1053955daaa7aad7b950"
+		sign_str := http_method + url_path + salt + timestamp + access_key + secret_key + string(body_string[:])
+	  	h := hmac.New(sha256.New, []byte(secret_key))
+	  	h.Write([]byte(sign_str))
+	  	buf := h.Sum(nil)
+		signature := base64.RawURLEncoding.EncodeToString(buf)
+		// req.PostForm = form
+		httpReq.Header.Add("content-Type", "application/json")
+		httpReq.Header.Add("access_key", access_key)
+		httpReq.Header.Add("salt", salt)
+		httpReq.Header.Add("signature", signature)
+		httpReq.Header.Add("timestamp", timestamp)
+
+		resp, err := hc.Do(httpReq)
+		if err != nil {
+			return errors.New(fmt.Sprintf("payment failed... %v", err))
+		}
+		data, err2 := io.ReadAll(resp.Body)
+		if err2 != nil {
+			return errors.New(fmt.Sprintf("payment failed... %v", err2))
+		}
+		defer resp.Body.Close()
+		fmt.Println(data)
+		// if data.status != "SUCCESS" || data.data.status != "CLO" || data.data.amount != req.Order.Total {
+		// 	return errors.New(fmt.Sprintf("payment failed... %v", data.status.message))
+		// }
+	}
 	_, err := repo.orderCollection.InsertOne(ctx, req.Order)
 	return err
 }

@@ -5,6 +5,7 @@ package main
 import(
 	"context"
 	"time"
+	"fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/shipping-service/proto/shipping"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -84,13 +85,13 @@ type City struct{
 }
 
 type ShippingFees struct{
-	ShippingMethod 	string
-	ShippingFees 	[]*ShippingFee
+	ShippingMethod 	string 				`json:"shipping_method"`
+	ShippingFees 	[]*ShippingFee 		`json:"shipping_fees"`
 }
 
 type ShippingFee struct{
-	Weight 			int32
-	Price 			int32
+	Weight 			int32 				`json:"weight"`
+	Price 			int32 				`json:"price"`
 }
 
 // Utils functions to marshal and unmarshal between protobuff and mongodb
@@ -386,7 +387,7 @@ func (repo *MongoRepository) GetAddress(ctx context.Context, req *GetRequest) (*
 	bsonFilters = append(bsonFilters, bson.E{"_id", bson.D{bson.E{"$eq", addressId}}})
 	//bsonFilters = append(bsonFilters, bson.E{"disponible", bson.D{bson.E{"$eq", true}}})
 	var address *Address
-	err := repo.addressesCollection.FindOne(ctx, bsonFilters, nil).Decode(&address)
+	err := repo.addressesCollection.FindOne(ctx, bsonFilters).Decode(&address)
 	return address, err
 }
 
@@ -438,13 +439,26 @@ func (repo *MongoRepository) GetCities(ctx context.Context, req *GetRequest) ([]
 func (repo *MongoRepository) GetShippingFees(ctx context.Context, req *GetShippingFeesRequest) (int32, error){
 	bsonFilters := bson.D{}
 	bsonFilters = append(bsonFilters, bson.E{"shipping_method", bson.D{bson.E{"$eq", req.ShippingMethod}}})
-	var shippingFees *ShippingFees
-	err := repo.shippingFeesCollection.FindOne(ctx, bsonFilters, nil).Decode(&shippingFees)
+	cur, err := repo.shippingFeesCollection.Find(ctx, bsonFilters)
+	if err != nil {
+		return 0, err
+	}
 	var price int32
-	for _, fees := range shippingFees.ShippingFees {
-		if req.Weight > fees.Weight {
-			price = fees.Price
+	price = 0
+	for cur.Next(ctx) {
+		var shippingFees *ShippingFees
+		if err2 := cur.Decode(&shippingFees); err2 != nil {
+			return 0, err2
 		}
+		for _, fees := range shippingFees.ShippingFees {
+			if req.Weight <= fees.Weight {
+				price = fees.Price
+			}
+			if req.Weight > fees.Weight {
+				return price, err
+			}
+		}
+		fmt.Println(shippingFees)
 	}
 	return price, err
 }

@@ -65,6 +65,7 @@ type SendResponse struct {
 type GetChatRequest struct {
 	SenderID 		string
 	ReceiverID 		string
+	ProductID 		string
 }
 
 type GetChatResponse struct {
@@ -299,22 +300,21 @@ func (repo *MongoRepository) Send(ctx context.Context, chat *Chat) error{
 }
 
 func (repo *MongoRepository) GetChat(ctx context.Context, req *GetChatRequest) ([]*Chat, error){
+	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
 	matchStage := bson.D{
 		{"$match", bson.D{
 			{"$or", bson.A{
 				bson.D{
 					{"senderid", req.SenderID},
-					{"receiverid", req.ReceiverID}
+					{"receiverid", req.ReceiverID},
 				}, 
 				bson.D{
 					{"receiverid", req.SenderID},
-					{"senderid", req.ReceiverID}
-				}
+					{"senderid", req.ReceiverID},
+				},
 			}},
-			bson.D{
-				{"product.id", req.ProductID},
-			}
-		}}
+			{"product.id", productId},
+		}},
 	}
 	projectStage := bson.D{{"$project", bson.D{{"message", "$message"}, {"receiverid", "$receiverid"}, {"senderid", "$senderid"}, {"sendat", "$sendat"}, {"product", "$product"}}}}
 

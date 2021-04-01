@@ -8,11 +8,13 @@ import(
 
 	pb "github.com/charles-hashdak/cleartoo-services/chat-service/proto/chat"
 	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
+	catalogPb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
 )
 
 type handler struct{
 	repository
 	userClient userPb.UserService
+	catalogClient catalogPb.CatalogService
 }
 
 func (s *handler) Send(ctx context.Context, chat *pb.Chat, res *pb.SendResponse) error {
@@ -58,6 +60,15 @@ func (s *handler) GetConversations(ctx context.Context, req *pb.GetConversations
 		}
 		conversation.Avatar.Url = userRes.User.AvatarUrl
 		conversation.Username = userRes.User.Username
+		productRes, err3 := s.catalogClient.GetProduct(ctx, &catalogPb.GetRequest{
+			UserId: userId,
+			ProductId: userId,
+		})
+		if err3 != nil {
+			fmt.Println(err3)
+			return err3
+		}
+		conversation.Product.InCart = productRes.InCart
 	}
 	res.Conversations = UnmarshalConversations(conversations)
 	return nil

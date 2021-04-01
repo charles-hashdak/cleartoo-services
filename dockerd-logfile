@@ -1,0 +1,2 @@
+time="2021-03-12T13:54:58.777876498+01:00" level=info msg="Starting up"
+dockerd needs to be started with root. To see how to run dockerd in rootless mode with unprivileged user, see the documentation
