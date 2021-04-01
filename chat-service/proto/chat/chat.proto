@@ -37,6 +37,7 @@ message Product{
 	string title = 3;
 	int32 price = 4;
 	Photo photo = 5;
+	bool in_cart = 6;
 }
 
 message Photo{

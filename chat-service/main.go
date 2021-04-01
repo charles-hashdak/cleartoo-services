@@ -10,6 +10,7 @@ import(
 
 	pb "github.com/charles-hashdak/cleartoo-services/chat-service/proto/chat"
 	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
+	catalogPb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
 	"github.com/micro/go-micro/v2"
 )
 
@@ -34,8 +35,9 @@ func main(){
 	repository := &MongoRepository{chatCollection}
 
 	userClient := userPb.NewUserService("cleartoo.user", service.Client())
+	catalogClient := catalogPb.NewCatalogService("cleartoo.catalog", service.Client())
 
-	h := &handler{repository, userClient}
+	h := &handler{repository, userClient, catalogClient}
 
 	if err := pb.RegisterChatServiceHandler(service.Server(), h); err != nil{
 		fmt.Println(err)

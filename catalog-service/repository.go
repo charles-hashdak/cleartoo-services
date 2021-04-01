@@ -41,6 +41,7 @@ type Product struct{
 	ViewCount 		int32 				`json:"view_count"`
 	Offers 			Offers 				`json:"offers"`
 	Weight 			int32 				`json:"weight"`
+	Deleted 		bool 				`json:"deleted"`
 	InCart 			bool
 }
 
@@ -87,6 +88,8 @@ type Offer struct{
 	UserID 			string 				`json:"user_id"`
 	Amount			int32 				`json:"amount"`
 	Status 			string 				`json:"status"`
+	CreatedAt 		string 				`json:"created_at"`
+	UpdatedAt 		string 				`json:"updated_at"`
 }
 
 type Offers []*Offer
@@ -187,6 +190,7 @@ func MarshalProduct(product *pb.Product) *Product{
 		ViewCount:		product.ViewCount,
 		Offers:			MarshalOffers(product.Offers),
 		Weight:			product.Weight,
+		Deleted:		product.Deleted,
 	}
 }
 
@@ -222,6 +226,7 @@ func UnmarshalProduct(product *Product, userId string) *pb.Product{
 		Wished:			wished,
 		Offers:			UnmarshalOffers(product.Offers),
 		Weight:			product.Weight,
+		Deleted:		product.Deleted,
 		InCart:			product.InCart,
 	}
 }
@@ -281,6 +286,8 @@ func MarshalOffer(offer *pb.Offer) *Offer{
 		UserID:			offer.UserId,
 		Amount:			offer.Amount,
 		Status:			offer.Status,
+		CreatedAt:		offer.CreatedAt,
+		UpdatedAt:		offer.UpdatedAt,
 	}
 }
 
@@ -301,6 +308,8 @@ func UnmarshalOffer(offer *Offer) *pb.Offer{
 		UserId:			offer.UserID,
 		Amount:			offer.Amount,
 		Status:			offer.Status,
+		CreatedAt:		offer.CreatedAt,
+		UpdatedAt:		offer.UpdatedAt,
 	}
 }
 
@@ -620,7 +629,7 @@ func UnmarshalGetRequest(req *GetRequest) *pb.GetRequest{
 func MarshalCreateOfferRequest(req *pb.CreateOfferRequest) *CreateOfferRequest{
 	return &CreateOfferRequest{
 		ProductID: 		req.ProductId,
-		Offer: 			req.Offer,
+		Offer: 			*MarshalOffer(req.Offer),
 	}
 }
 
@@ -777,10 +786,12 @@ func (repo *MongoRepository) EditProduct(ctx context.Context, product *Product) 
 	return err
 }
 
-func (repo *MongoRepository) CreateOffer(ctx context.Context, offer *Offer) error{
+func (repo *MongoRepository) CreateOffer(ctx context.Context, req *CreateOfferRequest) error{
+	req.Offer.Status = "pending"
+	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
 	_, err := repo.productsCollection.UpdateOne(
 	    ctx,
-	    bson.M{"id": req.ProductID},
+	    bson.M{"_id": productId},
 	    bson.D{
 	        {"$push", bson.D{{"offers", req.Offer}}},
 	    },
@@ -791,9 +802,9 @@ func (repo *MongoRepository) CreateOffer(ctx context.Context, offer *Offer) erro
 func (repo *MongoRepository) EditOffer(ctx context.Context, offer *Offer) error{
 	_, err := repo.productsCollection.UpdateOne(
 	    ctx,
-	    bson.M{"id": req.ProductID},
+	    bson.M{"_id": offer.ID},
 	    bson.D{
-	        {"$push", bson.D{{"offers", req.Offer}}},
+	        {"$push", bson.D{{"offers", offer}}},
 	    },
 	)
 	return err

@@ -3,14 +3,15 @@ module github.com/charles-hashdak/cleartoo-services/user-service
 go 1.14
 
 replace (
-	google.golang.org/grpc => google.golang.org/grpc v1.27.0
 	github.com/coreos/etcd => github.com/ozonru/etcd v3.3.20-grpc1.27-origmodule+incompatible
+	google.golang.org/grpc => google.golang.org/grpc v1.27.0
 )
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.2
+	github.com/jinzhu/gorm v1.9.16
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.3.0
 	github.com/micro/go-micro v1.18.0
