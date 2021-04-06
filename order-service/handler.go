@@ -4,6 +4,7 @@ package main
 
 import(
 	"context"
+	"fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
 	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
@@ -16,9 +17,11 @@ type handler struct{
 
 func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.OrderResponse) error {
 
+	fmt.Println(req)
 	err := s.repository.Order(ctx, MarshalOrderRequest(req))
 
 	if err != nil{
+		fmt.Println(err)
 		return err
 	}
 

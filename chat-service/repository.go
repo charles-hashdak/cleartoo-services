@@ -44,6 +44,7 @@ type Product struct{
 	Title 			string
 	Price 			int32
 	Photo 			Photo
+	InCart 			bool
 }
 
 type Photo struct{
@@ -174,6 +175,7 @@ func UnmarshalProduct(product *Product) *pb.Product{
 		Title:			product.Title,
 		Price:			product.Price,
 		Photo:			UnmarshalPhoto(&product.Photo),
+		InCart:			product.InCart,
 	}
 }
 

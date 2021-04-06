@@ -30,10 +30,10 @@ type Order struct{
 	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
 	UserID 			string 				`json:"user_id"`
 	Products 		Products 			`json:"products"`
-	SubTotal 		int32 				`json:"sub_total"`
-	ShippingFees    int32 				`json:"shipping_fees"`
-	Taxes 			int32 				`json:"taxes"`
-	Total 			int32 				`json:"total"`
+	SubTotal 		float32				`json:"sub_total"`
+	ShippingFees    float32				`json:"shipping_fees"`
+	Taxes 			float32				`json:"taxes"`
+	Total 			float32				`json:"total"`
 	Status 			string 				`json:"status"`
 	ShippingMethod 	string 				`json:"shipping_method"`
 	PaymentMethod 	string 				`json:"payment_method"`
@@ -125,7 +125,8 @@ type GetResponse struct {
 }
 
 type GetWalletRequest struct {
-	WalletID 		string
+	UserID 		string
+	WalletID 	string
 }
 
 type InitializeWalletRequest struct {
@@ -239,6 +240,7 @@ func UnmarshalGetRequest(req *GetRequest) *pb.GetRequest{
 
 func MarshalGetWalletRequest(req *pb.GetWalletRequest) *GetWalletRequest{
 	return &GetWalletRequest{
+		UserID: 		req.UserId,
 		WalletID: 		req.WalletId,
 	}
 }
@@ -505,6 +507,7 @@ func (repo *MongoRepository) GetSingleOrder(ctx context.Context, req *GetSingleR
 }
 
 func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error{
+	fmt.Println("ok")
 	if req.Order.PaymentMethod == "card" {
 		hc := http.Client{}
 		form := []byte(`{
@@ -543,11 +546,13 @@ func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error
 
 		resp, err := hc.Do(httpReq)
 		if err != nil {
-			return errors.New(fmt.Sprintf("payment failed... %v", err))
+			fmt.Println(err)
+			return errors.New(fmt.Sprintf("payment request failed... %v", err))
 		}
 		data, err2 := io.ReadAll(resp.Body)
 		if err2 != nil {
-			return errors.New(fmt.Sprintf("payment failed... %v", err2))
+			fmt.Println(err2)
+			return errors.New(fmt.Sprintf("payment body lecture failed... %v", err2))
 		}
 		defer resp.Body.Close()
 		fmt.Println(data)
@@ -609,7 +614,7 @@ func (repo *MongoRepository) GetSales(ctx context.Context, req *GetRequest) ([]*
 
 func (repo *MongoRepository) GetWallet(ctx context.Context, req *GetWalletRequest) (*Wallet, error){
 	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"_id", bson.D{bson.E{"$eq", req.WalletID}}})
+	bsonFilters = append(bsonFilters, bson.E{"user_id", bson.D{bson.E{"$eq", req.UserID}}})
 	var wallet *Wallet
 	err := repo.walletCollection.FindOne(ctx, bsonFilters, nil).Decode(&wallet)
 	return wallet, err

@@ -9,6 +9,7 @@ replace (
 
 require (
 	github.com/charles-hashdak/cleartoo-services/user-service v0.0.0-20210310052804-c83c37d687af
+	github.com/charles-hashdak/cleartoo-services/catalog-service latest
 	github.com/coreos/etcd v3.3.25+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
