@@ -24,10 +24,10 @@ message Order{
 	string id = 1;
 	string user_id = 2;
 	repeated Product products = 3;
-	int32 sub_total = 4;
-	int32 shipping_fees = 5;
-	int32 taxes = 6;
-	int32 total = 7;
+	float sub_total = 4;
+	float shipping_fees = 5;
+	float taxes = 6;
+	float total = 7;
 	string status = 8;
 	string shipping_method = 9;
 	string payment_method = 10;
@@ -141,7 +141,8 @@ message GetSingleResponse{
 }
 
 message GetWalletRequest{
-	string wallet_id = 1;
+	string user_id = 1;
+	string wallet_id = 2;
 }
 
 message GetWalletResponse{
