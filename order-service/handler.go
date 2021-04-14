@@ -1,10 +1,11 @@
-// order-service/main.go
+// order-service/handler.go
 
 package main
 
 import(
 	"context"
 	"fmt"
+	"sync"
 
 	pb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
 	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
@@ -13,10 +14,12 @@ import(
 type handler struct{
 	repository
 	cartClient cartPb.CartService
+	addOrderMutex sync.Mutex
 }
 
 func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.OrderResponse) error {
-
+	s.addOrderMutex.Lock()
+	defer s.addOrderMutex.Unlock()
 	fmt.Println(req)
 	err := s.repository.Order(ctx, MarshalOrderRequest(req))
 
@@ -34,7 +37,7 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 	if err2 != nil{
 		return err2
 	}
-
+	
 	return nil
 }
 

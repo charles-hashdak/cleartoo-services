@@ -5,6 +5,7 @@ package main
 import(
 	"context"
 	"fmt"
+	"sync"
 	"log"
 	"os"
 
@@ -37,7 +38,9 @@ func main(){
 
 	cartClient := cartPb.NewCartService("cleartoo.cart", service.Client())
 
-	h := &handler{repository, cartClient}
+	mutex := sync.Mutex{}
+
+	h := &handler{repository, cartClient, mutex}
 
 	if err := pb.RegisterOrderServiceHandler(service.Server(), h); err != nil{
 		fmt.Println(err)

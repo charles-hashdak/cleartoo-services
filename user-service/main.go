@@ -22,6 +22,8 @@ const schema = `
 		followers_count int,
 		following_count int,
 		age int,
+		fb_token varchar(225),
+		push_token varchar(225),
 		primary key (id)
 	);
 

@@ -787,6 +787,8 @@ func (repo *MongoRepository) EditProduct(ctx context.Context, product *Product) 
 }
 
 func (repo *MongoRepository) CreateOffer(ctx context.Context, req *CreateOfferRequest) error{
+	req.Offer.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
+	req.Offer.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
 	req.Offer.Status = "pending"
 	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
 	_, err := repo.productsCollection.UpdateOne(
@@ -802,10 +804,8 @@ func (repo *MongoRepository) CreateOffer(ctx context.Context, req *CreateOfferRe
 func (repo *MongoRepository) EditOffer(ctx context.Context, offer *Offer) error{
 	_, err := repo.productsCollection.UpdateOne(
 	    ctx,
-	    bson.M{"_id": offer.ID},
-	    bson.D{
-	        {"$push", bson.D{{"offers", offer}}},
-	    },
+	    bson.M{"offers._id": offer.ID},
+	    bson.M{"$set": bson.M{"offers.$.status": offer.Status}},
 	)
 	return err
 }

@@ -116,7 +116,9 @@ message CancelOrderResponse{
 
 message UpdateOrderStatusRequest{
 	string order_id = 1;
-	string user_id = 2;
+	string status = 2;
+	string track_id = 3;
+	string user_id = 4;
 }
 
 message UpdateOrderStatusResponse{
