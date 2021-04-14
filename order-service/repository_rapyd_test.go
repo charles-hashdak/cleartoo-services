@@ -7,7 +7,6 @@ import(
 	"fmt"
 	"errors"
 	"net/http"
-	"net/http/httputil"
 	"math/rand"
 	_ "strings"
 	"io"
@@ -18,8 +17,6 @@ import(
     "crypto/hmac"
     "crypto/sha256"
     "encoding/base64"
-    "encoding/hex"
-    "encoding/json"
 	_ "log"
 
 	pb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
@@ -155,8 +152,6 @@ type CancelOrderResponse struct {
 
 type UpdateOrderStatusRequest struct {
 	OrderID 		string
-	Status 			string
-	TrackID 		string
 	UserID 			string
 }
 
@@ -278,8 +273,6 @@ func MarshalCancelOrderRequest(req *pb.CancelOrderRequest) *CancelOrderRequest{
 func MarshalUpdateOrderStatusRequest(req *pb.UpdateOrderStatusRequest) *UpdateOrderStatusRequest{
 	return &UpdateOrderStatusRequest{
 		OrderID: 		req.OrderId,
-		Status: 		req.Status,
-		TrackID: 		req.TrackId,
 		UserID: 		req.UserId,
 	}
 }
@@ -484,6 +477,55 @@ func UnmarshalOrderCollection(orders []*Order) []*pb.Order {
 	return collection
 }
 
+type CardPaymentRequest struct {
+	Amount        string `json:"amount"`
+	Currency      string `json:"currency"`
+	PaymentMethod PaymentMethod `json:"payment_method"`
+	ErrorPaymentURL string `json:"error_payment_url"`
+	Capture         bool   `json:"capture"`
+}
+
+type PaymentMethod struct {
+	Type   string `json:"type"`
+	Fields Fields `json:"fields"`
+} 
+
+type Fields struct {
+	Number          string `json:"number"`
+	ExpirationMonth string `json:"expiration_month"`
+	ExpirationYear  string `json:"expiration_year"`
+	Cvv             string `json:"cvv"`
+}
+
+type CardPaymentResponse struct {
+	Status struct {
+		ErrorCode    string `json:"error_code"`
+		Status       string `json:"status"`
+		Message      string `json:"message"`
+		ResponseCode string `json:"response_code"`
+		OperationID  string `json:"operation_id"`
+	} `json:"status"`
+	Data struct {
+		ID                        string  `json:"id"`
+		Amount                    float64 `json:"amount"`
+		OriginalAmount            float64 `json:"original_amount"`
+		IsPartial                 bool    `json:"is_partial"`
+		CurrencyCode              string  `json:"currency_code"`
+		CountryCode               string  `json:"country_code"`
+		Status                    string  `json:"status"`
+		CustomerToken             string  `json:"customer_token"`
+		PaymentMethod             string  `json:"payment_method"`
+		Expiration                int     `json:"expiration"`
+		Captured                  bool    `json:"captured"`
+		ErrorPaymentURL           string  `json:"error_payment_url"`
+		CreatedAt                 int     `json:"created_at"`
+		Paid                      bool    `json:"paid"`
+		PaidAt                    int     `json:"paid_at"`
+		PaymentMethodType         string  `json:"payment_method_type"`
+		PaymentMethodTypeCategory string  `json:"payment_method_type_category"`
+	} `json:"data"`
+}
+
 type repository interface{
 	Order(ctx context.Context, req *OrderRequest) error
 	GetSingleOrder(ctx context.Context, req *GetSingleRequest) (*Order, error)
@@ -513,84 +555,65 @@ func (repo *MongoRepository) GetSingleOrder(ctx context.Context, req *GetSingleR
 	return order, err
 }
 
-type CardRequest struct {
-	Amount        float64 `json:"amount"`
-	Currency      string  `json:"currency"`
-	PaymentMethod PaymentMethod `json:"payment_method"`
-	ErrorPaymentURL string `json:"error_payment_url"`
-	Capture         bool   `json:"capture"`
-}
-
-type PaymentMethod struct {
-	Type   string `json:"type"`
-	Fields Fields `json:"fields"`
-}
-
-type Fields struct {
-	Number          string `json:"number"`
-	ExpirationMonth string `json:"expiration_month"`
-	ExpirationYear  string `json:"expiration_year"`
-	Cvv             string `json:"cvv"`
-}
-
 func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error{
-	fmt.Println("ok")
 	if req.Order.PaymentMethod == "card" {
 		hc := http.Client{}
-		form, _ := json.Marshal(CardRequest{
-		   Amount: 53.5,
-		   Currency: "THB",
-		   PaymentMethod: PaymentMethod{
-		       Type: "th_visa_card",
-		       Fields: Fields{
-		           Number: "4111111111111111",
-		           ExpirationMonth: "10",
-		           ExpirationYear: "21",
-		           Cvv: "123",
-		       },
-		   },
-		  ErrorPaymentURL: "https://error_example.net",
-		  Capture: true})
+		paymentReq := CardPaymentRequest{
+			Amount: strconv.Itoa(int(req.Order.Total)),
+			Currency: "THB",
+			PaymentMethod: PaymentMethod{
+				Type: "th_visa_card",
+				Fields: Fields{
+					Number: "4111111111111111",
+					ExpirationMonth: "10",
+					ExpirationYear: "21",
+					Cvv: "123",
+				},
+			},
+			ErrorPaymentURL: "https://error_example.net",
+			Capture: true,
+		}
+		jsonValue, err := json.Marshal(paymentReq)
+		if err != nil {
+			fmt.Println(err)
+			return errors.New(fmt.Sprintf("payment request marshal failed... %v", err))
+		}
+		httpReq, err := http.NewRequest("POST", "https://sandboxapi.rapyd.net/v1/payments", bytes.NewBuffer(jsonValue))
+		if err != nil {
+			fmt.Println(err)
+			return errors.New(fmt.Sprintf("payment request creation failed... %v", err))
+		}
 		http_method := "post"
 		url_path := "/v1/payments"
 		salt := strconv.Itoa(10000000 + rand.Intn(99999999-10000000))
 		timestamp := strconv.Itoa(int(time.Now().Unix()))
+		body_string := form
 		access_key := "CA818DDE1BDFE4CEDFFA"
 		secret_key := "fea7f18fb788775d863870685b98078b9ab91e19ed13d5218b901b51968e1053955daaa7aad7b950"
-		sign_str := http_method + url_path + salt + timestamp + access_key + secret_key + string(form[:])
-		fmt.Println(sign_str)
+		sign_str := http_method + url_path + salt + timestamp + access_key + secret_key + string(body_string[:])
 	  	h := hmac.New(sha256.New, []byte(secret_key))
 	  	h.Write([]byte(sign_str))
 	  	buf := h.Sum(nil)
-	  	hex := hex.EncodeToString(buf)
-		signature := base64.URLEncoding.EncodeToString([]byte(hex))
-		fmt.Println(signature)
-		httpReq, err := http.NewRequest("POST", "https://sandboxapi.rapyd.net/v1/payments", bytes.NewBuffer(form))
+		signature := base64.RawURLEncoding.EncodeToString(buf)
 		// req.PostForm = form
-		httpReq.Header.Set("Content-Type", "application/json")
-		httpReq.Header.Set("access_key", access_key)
-		httpReq.Header.Set("salt", salt)
-		httpReq.Header.Set("signature", signature)
-		httpReq.Header.Set("timestamp", timestamp)
+		httpReq.Header.Add("content-Type", "application/json")
+		httpReq.Header.Add("access_key", access_key)
+		httpReq.Header.Add("salt", salt)
+		httpReq.Header.Add("signature", signature)
+		httpReq.Header.Add("timestamp", timestamp)
 
 		resp, err := hc.Do(httpReq)
 		if err != nil {
 			fmt.Println(err)
 			return errors.New(fmt.Sprintf("payment request failed... %v", err))
 		}
-		bytes, err := httputil.DumpRequest(httpReq, true)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		fmt.Println(string(bytes))
 		data, err2 := io.ReadAll(resp.Body)
 		if err2 != nil {
 			fmt.Println(err2)
 			return errors.New(fmt.Sprintf("payment body lecture failed... %v", err2))
 		}
-		fmt.Println(string(data))
-		resp.Body.Close()
+		defer resp.Body.Close()
+		fmt.Println(data)
 		// if data.status != "SUCCESS" || data.data.status != "CLO" || data.data.amount != req.Order.Total {
 		// 	return errors.New(fmt.Sprintf("payment failed... %v", data.status.message))
 		// }
