@@ -5,7 +5,7 @@ package main
 import(
 	"context"
 	_ "log"
-	_ "fmt"
+	"fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -291,22 +291,22 @@ func (repo *MongoRepository) AddToCart(ctx context.Context, req *AddToCartReques
 			return createErr
 		}
 	}
-	cart, cartErr := repo.GetCart(ctx, &GetRequest{UserID: req.UserID})
-	if cartErr != nil {
-		return cartErr
-	}
-	var valid = true
-	for _, product := range cart.Products {
-		if product.OwnerID != req.UserID {
-			valid = false
-		}
-	}
-	if !valid {
-		emptyErr := repo.EmptyCart(ctx, &GetRequest{UserID: req.UserID})
-		if emptyErr != nil {
-			return emptyErr
-		}
-	}
+	// cart, cartErr := repo.GetCart(ctx, &GetRequest{UserID: req.UserID})
+	// if cartErr != nil {
+	// 	return cartErr
+	// }
+	// var valid = true
+	// for _, product := range cart.Products {
+	// 	if product.OwnerID != req.UserID {
+	// 		valid = false
+	// 	}
+	// }
+	// if !valid {
+	// 	emptyErr := repo.EmptyCart(ctx, &GetRequest{UserID: req.UserID})
+	// 	if emptyErr != nil {
+	// 		return emptyErr
+	// 	}
+	// }
 	_, err := repo.cartCollection.UpdateOne(
 	    ctx,
 	    bson.M{"userid": req.UserID},
@@ -359,6 +359,8 @@ func (repo *MongoRepository) CreateCart(ctx context.Context, req *GetRequest) er
 }
 
 func (repo *MongoRepository) IsInCart(ctx context.Context, req *IsInCartRequest) (bool, error){
+	fmt.Println(req.ProductID)
+	fmt.Println(req.UserID)
 	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
 	bsonFilters := bson.D{
 		{"userid", req.UserID},
@@ -379,10 +381,13 @@ func (repo *MongoRepository) IsInCart(ctx context.Context, req *IsInCartRequest)
 }
 
 func (repo *MongoRepository) EmptyCart(ctx context.Context, req *GetRequest) error{
+	fmt.Println(req.UserID)
 	cartProducts := make(Products, 0)
 	_, err := repo.cartCollection.UpdateOne(
 	    ctx,
-	    bson.M{"userid": req.UserID},
+	    bson.D{
+			{"userid", req.UserID},
+		},
 	    bson.D{
 	        {"$set", bson.D{
 	        	{"products", cartProducts},

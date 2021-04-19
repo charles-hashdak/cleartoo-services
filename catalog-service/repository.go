@@ -6,6 +6,7 @@ import(
 	"context"
 	"time"
 	"strings"
+	"strconv"
 
 	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -830,6 +831,9 @@ func (repo *MongoRepository) GetProducts(ctx context.Context, req *GetRequest) (
 				finalValue := newValue
 				bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, finalValue}}})
 			}
+		}else if(f.Condition == "$gt" || f.Condition == "$lt"){
+			newValue, _ := strconv.Atoi(f.Value)
+			bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, newValue}}})
 		}else{
 			if(f.Hex == true){
 				objId, _ := primitive.ObjectIDFromHex(f.Value)
