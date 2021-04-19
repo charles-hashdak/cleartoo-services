@@ -12,6 +12,7 @@ import (
 
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	micro "github.com/micro/go-micro/v2"
+	"github.com/oliveroneill/exponent-server-sdk-golang/sdk"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -37,6 +38,42 @@ func (srv *service) Get(ctx context.Context, req *pb.User, res *pb.Response) err
 		return err
 	}
 	res.User = user
+	return nil
+}
+
+func (srv *service) SendNotification(ctx context.Context, req *pb.Notification, res *pb.Response) error {
+	user, err := repo.Get(req.UserId)
+
+	if err != nil{
+		return err
+	}
+
+    pushToken, err := expo.NewExponentPushToken(user.PushToken)
+    if err != nil {
+        panic(err)
+    }
+
+    client := expo.NewPushClient(nil)
+
+    response, err := client.Publish(
+        &expo.PushMessage{
+            To: pushToken,
+            Body: "Check your sales!",
+            Data: map[string]string{"withSome": "data"},
+            Sound: "default",
+            Title: "New order!",
+            Priority: expo.DefaultPriority,
+        },
+    )
+
+    if err != nil {
+        return err
+    }
+
+    if response.ValidateResponse() != nil {
+        fmt.Println(response.PushMessage.To, "failed")
+    }
+    
 	return nil
 }
 
@@ -156,6 +193,8 @@ func (srv *service) FacebookLogin(ctx context.Context, req *pb.User, res *pb.Res
 	if err != nil {
 		return err
 	}
+	fmt.Println(user)
+	fmt.Println(req)
 	if(user.Email != req.Email){
 		var usernameId = 1000 + rand.Intn(9999-1000)
 		req.Username = strings.Split(user.Email, string('@'))[0] + strconv.Itoa(usernameId)
@@ -238,8 +277,8 @@ func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Res
 		return errors.New(fmt.Sprintf("error creating user: %v", err))
 	}
 
-	from := "info@shiftdakar.com"
-	password := "Shift784512!"
+	from := "no_reply@cleartoo.co.th"
+	password := "QZyPXnA9"
 
 	// Receiver email address.
 	to := []string{
@@ -247,11 +286,14 @@ func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Res
 	}
 
 	// smtp server configuration.
-	smtpHost := "vmi449068.contaboserver.net"
-	smtpPort := "587"
+	smtpHost := "smtp.cleartoo.co.th"
+	smtpPort := "25"
 
 	// Message.
-	message := []byte("New password = "+plainPassword)
+	message := []byte("To: "+req.Email+"\r\n" +
+		"Subject: Password reset!\r\n" +
+		"\r\n" +
+		"New password = "+plainPassword)
 
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)

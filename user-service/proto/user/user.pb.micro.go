@@ -48,6 +48,7 @@ type UserService interface {
 	ChangePassword(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	ResetPassword(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	Get(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
+	SendNotification(ctx context.Context, in *Notification, opts ...client.CallOption) (*Response, error)
 	GetAll(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error)
 	Auth(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	ValidateToken(ctx context.Context, in *Token, opts ...client.CallOption) (*Token, error)
@@ -127,6 +128,16 @@ func (c *userService) Get(ctx context.Context, in *User, opts ...client.CallOpti
 	return out, nil
 }
 
+func (c *userService) SendNotification(ctx context.Context, in *Notification, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "UserService.SendNotification", in)
+	out := new(Response)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userService) GetAll(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error) {
 	req := c.c.NewRequest(c.name, "UserService.GetAll", in)
 	out := new(Response)
@@ -186,6 +197,7 @@ type UserServiceHandler interface {
 	ChangePassword(context.Context, *User, *Response) error
 	ResetPassword(context.Context, *User, *Response) error
 	Get(context.Context, *User, *Response) error
+	SendNotification(context.Context, *Notification, *Response) error
 	GetAll(context.Context, *Request, *Response) error
 	Auth(context.Context, *User, *Response) error
 	ValidateToken(context.Context, *Token, *Token) error
@@ -201,6 +213,7 @@ func RegisterUserServiceHandler(s server.Server, hdlr UserServiceHandler, opts .
 		ChangePassword(ctx context.Context, in *User, out *Response) error
 		ResetPassword(ctx context.Context, in *User, out *Response) error
 		Get(ctx context.Context, in *User, out *Response) error
+		SendNotification(ctx context.Context, in *Notification, out *Response) error
 		GetAll(ctx context.Context, in *Request, out *Response) error
 		Auth(ctx context.Context, in *User, out *Response) error
 		ValidateToken(ctx context.Context, in *Token, out *Token) error
@@ -240,6 +253,10 @@ func (h *userServiceHandler) ResetPassword(ctx context.Context, in *User, out *R
 
 func (h *userServiceHandler) Get(ctx context.Context, in *User, out *Response) error {
 	return h.UserServiceHandler.Get(ctx, in, out)
+}
+
+func (h *userServiceHandler) SendNotification(ctx context.Context, in *Notification, out *Response) error {
+	return h.UserServiceHandler.SendNotification(ctx, in, out)
 }
 
 func (h *userServiceHandler) GetAll(ctx context.Context, in *Request, out *Response) error {

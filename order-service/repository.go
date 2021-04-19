@@ -7,7 +7,7 @@ import(
 	"fmt"
 	"errors"
 	"net/http"
-	"net/http/httputil"
+	_ "net/http/httputil"
 	"math/rand"
 	_ "strings"
 	"io"
@@ -44,9 +44,10 @@ type Order struct{
 
 type Card struct{
 	Number 			string
-	ExpirationMonth int32
-	ExpirationYear 	int32
-	Cvv 			int32
+	ExpirationMonth string
+	ExpirationYear 	string
+	Cvv 			string
+	HolderName		string
 }
 
 type Wallet struct{
@@ -290,6 +291,7 @@ func MarshalCard(card *pb.Card) *Card{
 		ExpirationMonth:card.ExpirationMonth,
 		ExpirationYear:	card.ExpirationYear,
 		Cvv:			card.Cvv,
+		HolderName:		card.HolderName,
 	}
 }
 
@@ -299,6 +301,7 @@ func UnmarshalCard(card *Card) *pb.Card{
 		ExpirationMonth:card.ExpirationMonth,
 		ExpirationYear:	card.ExpirationYear,
 		Cvv:			card.Cvv,
+		HolderName:		card.HolderName,
 	}
 }
 
@@ -514,7 +517,7 @@ func (repo *MongoRepository) GetSingleOrder(ctx context.Context, req *GetSingleR
 }
 
 type CardRequest struct {
-	Amount        float64 `json:"amount"`
+	Amount        float32 `json:"amount"`
 	Currency      string  `json:"currency"`
 	PaymentMethod PaymentMethod `json:"payment_method"`
 	ErrorPaymentURL string `json:"error_payment_url"`
@@ -531,6 +534,7 @@ type Fields struct {
 	ExpirationMonth string `json:"expiration_month"`
 	ExpirationYear  string `json:"expiration_year"`
 	Cvv             string `json:"cvv"`
+	Name            string `json:"name"`
 }
 
 func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error{
@@ -538,15 +542,16 @@ func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error
 	if req.Order.PaymentMethod == "card" {
 		hc := http.Client{}
 		form, _ := json.Marshal(CardRequest{
-		   Amount: 53.5,
+		   Amount: req.Order.Total,
 		   Currency: "THB",
 		   PaymentMethod: PaymentMethod{
 		       Type: "th_visa_card",
 		       Fields: Fields{
-		           Number: "4111111111111111",
-		           ExpirationMonth: "10",
-		           ExpirationYear: "21",
-		           Cvv: "123",
+		           Number: req.Card.Number,
+		           ExpirationMonth: req.Card.ExpirationMonth,
+		           ExpirationYear: req.Card.ExpirationYear,
+		           Cvv: req.Card.Cvv,
+		           Name: req.Card.HolderName,
 		       },
 		   },
 		  ErrorPaymentURL: "https://error_example.net",
@@ -558,13 +563,11 @@ func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error
 		access_key := "CA818DDE1BDFE4CEDFFA"
 		secret_key := "fea7f18fb788775d863870685b98078b9ab91e19ed13d5218b901b51968e1053955daaa7aad7b950"
 		sign_str := http_method + url_path + salt + timestamp + access_key + secret_key + string(form[:])
-		fmt.Println(sign_str)
 	  	h := hmac.New(sha256.New, []byte(secret_key))
 	  	h.Write([]byte(sign_str))
 	  	buf := h.Sum(nil)
 	  	hex := hex.EncodeToString(buf)
 		signature := base64.URLEncoding.EncodeToString([]byte(hex))
-		fmt.Println(signature)
 		httpReq, err := http.NewRequest("POST", "https://sandboxapi.rapyd.net/v1/payments", bytes.NewBuffer(form))
 		// req.PostForm = form
 		httpReq.Header.Set("Content-Type", "application/json")
@@ -578,22 +581,28 @@ func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error
 			fmt.Println(err)
 			return errors.New(fmt.Sprintf("payment request failed... %v", err))
 		}
-		bytes, err := httputil.DumpRequest(httpReq, true)
 		if err != nil {
 			fmt.Println(err)
 		}
 
-		fmt.Println(string(bytes))
 		data, err2 := io.ReadAll(resp.Body)
 		if err2 != nil {
 			fmt.Println(err2)
 			return errors.New(fmt.Sprintf("payment body lecture failed... %v", err2))
 		}
+		var result map[string]interface{}
 		fmt.Println(string(data))
+		json.Unmarshal([]byte(string(data)), &result)
+		status := result["status"].(map[string]interface{})
+		if status["status"] != "SUCCESS" {
+			return errors.New(fmt.Sprintf("payment failed... %v", status["message"]))
+		}else{
+			// resultData := result["data"].(map[string]interface{})
+			// if resultData["status"] != "CLO" || resultData["amount"] != req.Order.Total {
+			// 	return errors.New(fmt.Sprintf("payment failed... %v", status["message"]))
+			// }
+		}
 		resp.Body.Close()
-		// if data.status != "SUCCESS" || data.data.status != "CLO" || data.data.amount != req.Order.Total {
-		// 	return errors.New(fmt.Sprintf("payment failed... %v", data.status.message))
-		// }
 	}
 	_, err := repo.orderCollection.InsertOne(ctx, req.Order)
 	return err

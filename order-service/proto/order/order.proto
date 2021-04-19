@@ -52,9 +52,10 @@ message Product{
 
 message Card{
    string number = 1;
-   int32 expiration_month = 2;
-   int32 expiration_year = 3;
-   int32 cvv = 4;
+   string expiration_month = 2;
+   string expiration_year = 3;
+   string cvv = 4;
+   string holder_name = 5;
 }
 
 message Wallet{

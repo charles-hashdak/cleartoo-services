@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -39,15 +41,18 @@ func (repo *UserRepository) Get(id string) (*pb.User, error) {
 }
 
 func (repo *UserRepository) GetByEmail(email string) (*pb.User, error) {
+	fmt.Println(email)
 	user := &pb.User{}
 	if err := repo.db.Where("email = ?", email).
 		First(&user).Error; err != nil {
 		return nil, err
 	}
+	fmt.Println(user)
 	return user, nil
 }
 
 func (repo *UserRepository) Create(user *pb.User) error {
+	fmt.Println(user)
 	user.Id = uuid.NewV4().String()
 	// var usernameId = 1000 + rand.Intn(9999-1000)
 	// user.Username = strings.Split(user.Email, string('@'))[0] + strconv.Itoa(usernameId)
@@ -61,6 +66,7 @@ func (repo *UserRepository) Create(user *pb.User) error {
 }
 
 func (repo *UserRepository) Edit(user *pb.User) error {
+	fmt.Println(user)
 	if err := repo.db.Model(&user).Updates(map[string]interface{}{"username": user.Username, "description": user.Description, "avatar_url": user.AvatarUrl, "cover_url": user.CoverUrl, "age": user.Age}).Error; err != nil {
 		return err
 	}
