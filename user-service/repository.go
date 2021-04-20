@@ -67,7 +67,7 @@ func (repo *UserRepository) Create(user *pb.User) error {
 
 func (repo *UserRepository) Edit(user *pb.User) error {
 	fmt.Println(user)
-	if err := repo.db.Model(&user).Updates(map[string]interface{}{"username": user.Username, "description": user.Description, "avatar_url": user.AvatarUrl, "cover_url": user.CoverUrl, "age": user.Age}).Error; err != nil {
+	if err := repo.db.Model(&user).Updates(map[string]interface{}{"username": user.Username, "description": user.Description, "avatar_url": user.AvatarUrl, "cover_url": user.CoverUrl, "age": user.Age, "push_token": user.PushToken}).Error; err != nil {
 		return err
 	}
 	return nil

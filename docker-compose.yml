@@ -30,6 +30,9 @@ services:
       MICRO_SERVER_ADDRESS: ":50054"
       MICRO_REGISTRY: "mdns"
       DB_HOST: "mongodb://localhost:27017"
+      THAI_POST_TOKEN: "PjCjZzLiLrJ-SVZOA4SFB-EkOMW4U4PSX8X1FKMQJrO0EVFXXxEsObSfQYL%FDO+FLUwM:J7BoEDT!NPQ8VVAAUyXAFsOvSiC&Wm"
+      RAPYD_ACCESS_KEY:  "CA818DDE1BDFE4CEDFFA"
+      RAPYD_SECRET_KEY: "fea7f18fb788775d863870685b98078b9ab91e19ed13d5218b901b51968e1053955daaa7aad7b950"
 
   shipping:
     restart: always
@@ -77,6 +80,8 @@ services:
       DB_HOST: "localhost"
       DB_PASSWORD: "Postgres784512!"
       DB_USER: "postgres"
+      EMAIL_USER: "no_reply@cleartoo.co.th"
+      EMAIL_PASSWORD: "QZyPXnA9"
     depends_on:
       - database
 
