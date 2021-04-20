@@ -5,10 +5,12 @@ import (
   	"net/smtp"
 	"errors"
 	"log"
+	"os"
 	"context"
 	"strings"
 	"strconv"
 	"math/rand"
+	"sync"
 
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	micro "github.com/micro/go-micro/v2"
@@ -30,19 +32,25 @@ type service struct {
 	repo   			Repository
 	tokenService 	Authable
 	Publisher    	micro.Publisher
+	globalMutex 	sync.Mutex
 }
 
 func (srv *service) Get(ctx context.Context, req *pb.User, res *pb.Response) error {
+	srv.globalMutex.Lock()
+	defer srv.globalMutex.Unlock()
 	user, err := srv.repo.Get(req.Id)
 	if err != nil {
 		return err
 	}
+	user.Password = "";
 	res.User = user
 	return nil
 }
 
 func (srv *service) SendNotification(ctx context.Context, req *pb.Notification, res *pb.Response) error {
-	user, err := repo.Get(req.UserId)
+	srv.globalMutex.Lock()
+	defer srv.globalMutex.Unlock()
+	user, err := srv.repo.Get(req.UserId)
 
 	if err != nil{
 		return err
@@ -57,11 +65,11 @@ func (srv *service) SendNotification(ctx context.Context, req *pb.Notification, 
 
     response, err := client.Publish(
         &expo.PushMessage{
-            To: pushToken,
-            Body: "Check your sales!",
+            To: []expo.ExponentPushToken{pushToken},
+            Body: req.Body,
             Data: map[string]string{"withSome": "data"},
             Sound: "default",
-            Title: "New order!",
+            Title: req.Title,
             Priority: expo.DefaultPriority,
         },
     )
@@ -73,11 +81,13 @@ func (srv *service) SendNotification(ctx context.Context, req *pb.Notification, 
     if response.ValidateResponse() != nil {
         fmt.Println(response.PushMessage.To, "failed")
     }
-    
+
 	return nil
 }
 
 func (srv *service) Edit(ctx context.Context, req *pb.User, res *pb.Response) error {
+	srv.globalMutex.Lock()
+	defer srv.globalMutex.Unlock()
 	err := srv.repo.Edit(req)
 	if err != nil {
 		return err
@@ -114,6 +124,8 @@ func (srv *service) GetAll(ctx context.Context, req *pb.Request, res *pb.Respons
 }
 
 func (srv *service) Auth(ctx context.Context, req *pb.User, res *pb.Response) error {
+	srv.globalMutex.Lock()
+	defer srv.globalMutex.Unlock()
     _, ok := metadata.FromIncomingContext(ctx)
     if !ok {
         return status.Errorf(codes.DataLoss, "Failed to get metadata")
@@ -150,6 +162,8 @@ func (srv *service) Auth(ctx context.Context, req *pb.User, res *pb.Response) er
 }
 
 func (srv *service) Create(ctx context.Context, req *pb.User, res *pb.Response) error {
+	srv.globalMutex.Lock()
+	defer srv.globalMutex.Unlock()
 	req.Rating = 0;
   	req.AvatarUrl= ""
   	req.CoverUrl= ""
@@ -189,6 +203,8 @@ func (srv *service) Create(ctx context.Context, req *pb.User, res *pb.Response) 
 }
 
 func (srv *service) FacebookLogin(ctx context.Context, req *pb.User, res *pb.Response) error {
+	srv.globalMutex.Lock()
+	defer srv.globalMutex.Unlock()
 	user, err := srv.repo.GetByEmail(req.Email)
 	if err != nil {
 		return err
@@ -240,6 +256,8 @@ func (srv *service) FacebookLogin(ctx context.Context, req *pb.User, res *pb.Res
 }
 
 func (srv *service) ChangePassword(ctx context.Context, req *pb.User, res *pb.Response) error {
+	srv.globalMutex.Lock()
+	defer srv.globalMutex.Unlock()
 	// Generates a hashed version of our password
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -258,6 +276,8 @@ func (srv *service) ChangePassword(ctx context.Context, req *pb.User, res *pb.Re
 }
 
 func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Response) error {
+	srv.globalMutex.Lock()
+	defer srv.globalMutex.Unlock()
 	user, err1 := srv.repo.GetByEmail(req.Email)
 	if err1 != nil {
 		return err1
@@ -277,8 +297,8 @@ func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Res
 		return errors.New(fmt.Sprintf("error creating user: %v", err))
 	}
 
-	from := "no_reply@cleartoo.co.th"
-	password := "QZyPXnA9"
+	from := os.Getenv("EMAIL_USER")
+	password := os.Getenv("EMAIL_PASSWORD")
 
 	// Receiver email address.
 	to := []string{
@@ -286,11 +306,12 @@ func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Res
 	}
 
 	// smtp server configuration.
-	smtpHost := "smtp.cleartoo.co.th"
+	smtpHost := "us2.smtp.mailhostbox.com"
 	smtpPort := "25"
 
 	// Message.
-	message := []byte("To: "+req.Email+"\r\n" +
+	message := []byte("From: Cleartoo <no_reply@cleartoo.co.th>\r\n" +
+		"To: "+req.Email+"\r\n" +
 		"Subject: Password reset!\r\n" +
 		"\r\n" +
 		"New password = "+plainPassword)

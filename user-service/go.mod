@@ -17,6 +17,7 @@ require (
 	github.com/micro/go-micro v1.18.0
 	github.com/micro/go-micro/v2 v2.9.1
 	github.com/miekg/dns v1.1.31 // indirect
+	github.com/oliveroneill/exponent-server-sdk-golang v0.0.0-20200627013714-266e8e6ee5ad // indirect
 	github.com/satori/go.uuid v1.2.0
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974

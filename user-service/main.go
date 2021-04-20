@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"sync"
 
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"github.com/micro/go-micro/v2"
@@ -78,8 +79,10 @@ func main() {
 
 	publisher := micro.NewPublisher("user.created", srv.Client())
 
+	mutex := sync.Mutex{}
+
 	// Register handler
-	if err := pb.RegisterUserServiceHandler(srv.Server(), &service{repo, tokenService, publisher}); err != nil {
+	if err := pb.RegisterUserServiceHandler(srv.Server(), &service{repo, tokenService, publisher, mutex}); err != nil {
 		log.Panic(err)
 	}
 
