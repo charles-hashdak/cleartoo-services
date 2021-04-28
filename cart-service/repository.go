@@ -324,7 +324,7 @@ func (repo *MongoRepository) DeleteFromCart(ctx context.Context, req *DeleteFrom
 	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
 	_, err := repo.cartCollection.UpdateOne(
 	    ctx,
-	    bson.M{"user_id": req.UserID},
+	    bson.M{"userid": req.UserID},
 	    bson.D{
 	        {"$pull", bson.D{
 	        	{"products", bson.D{

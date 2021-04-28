@@ -9,6 +9,7 @@ import(
 	"os"
 
 	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
+	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
 	"github.com/micro/go-micro/v2"
 )
@@ -38,11 +39,12 @@ func main(){
 	conditionCollection := client.Database("cleartoo").Collection("conditions")
 	materialCollection := client.Database("cleartoo").Collection("materials")
 
+	userClient := userPb.NewUserService("cleartoo.user", service.Client())
 	cartClient := cartPb.NewCartService("cleartoo.cart", service.Client())
 
 	repository := &MongoRepository{productCollection, genderCollection, categoryCollection, sizeCollection, brandCollection, colorCollection, conditionCollection, materialCollection}
 
-	h := &handler{repository, cartClient}
+	h := &handler{repository, userClient, cartClient}
 
 	if err := pb.RegisterCatalogServiceHandler(service.Server(), h); err != nil{
 		fmt.Println(err)

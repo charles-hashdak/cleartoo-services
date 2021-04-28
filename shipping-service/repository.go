@@ -23,7 +23,9 @@ type Address struct{
 	Indications 	string 				`json:"indications"`
 	IsMain 			bool 				`json:"is_main"`
 	AddressLine1 	string 				`json:"address_line1"`
-	AddressLine2 	string 				`json:"address_line2"`
+	FirstName 		string 				`json:"first_name"`
+	LastName 		string 				`json:"last_name"`
+	Phone 			string 				`json:"phone"`
 	Country 		Country 			`json:"country"`
 	City 			City 				`json:"city"`
 	PostalCode		string 				`json:"postal_code"`
@@ -81,12 +83,12 @@ type Country struct{
 type City struct{
 	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
 	Name 			string 				`json:"name"`
-	CountryID 		string 				`json:"country_id"`
+	CountryID 		string 				`json:"countryid"`
 }
 
 type ShippingFees struct{
-	ShippingMethod 	string 				`json:"shipping_method"`
-	ShippingFees 	[]*ShippingFee 		`json:"shipping_fees"`
+	ShippingMethod 	string 				`json:"shippingmethod"`
+	ShippingFees 	[]*ShippingFee 		`json:"shippingfees"`
 }
 
 type ShippingFee struct{
@@ -105,7 +107,9 @@ func MarshalAddress(address *pb.Address) *Address{
 		Indications: 	address.Indications,
 		IsMain: 		address.IsMain,
 		AddressLine1: 	address.AddressLine1,
-		AddressLine2: 	address.AddressLine2,
+		FirstName: 		address.FirstName,
+		LastName: 		address.LastName,
+		Phone: 			address.Phone,
 		Country: 		*MarshalCountry(address.Country),
 		City: 			*MarshalCity(address.City),
 		PostalCode:		address.PostalCode,
@@ -122,7 +126,9 @@ func UnmarshalAddress(address *Address) *pb.Address{
 		Indications: 	address.Indications,
 		IsMain: 		address.IsMain,
 		AddressLine1: 	address.AddressLine1,
-		AddressLine2: 	address.AddressLine2,
+		FirstName: 		address.FirstName,
+		LastName: 		address.LastName,
+		Phone: 			address.Phone,
 		Country: 		UnmarshalCountry(&address.Country),
 		City: 			UnmarshalCity(&address.City),
 		PostalCode:		address.PostalCode,
@@ -438,7 +444,7 @@ func (repo *MongoRepository) GetCities(ctx context.Context, req *GetRequest) ([]
 
 func (repo *MongoRepository) GetShippingFees(ctx context.Context, req *GetShippingFeesRequest) (int32, error){
 	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"shipping_method", bson.D{bson.E{"$eq", req.ShippingMethod}}})
+	bsonFilters = append(bsonFilters, bson.E{"shippingmethod", bson.D{bson.E{"$eq", req.ShippingMethod}}})
 	cur, err := repo.shippingFeesCollection.Find(ctx, bsonFilters)
 	if err != nil {
 		return 0, err

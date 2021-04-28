@@ -31,12 +31,14 @@ message Address{
 	string indications = 4;
 	bool is_main = 5;
 	string address_line1 = 6;
-	string address_line2 = 7;
-	Country country = 8;
-	City city = 9;
-	string postal_code = 10;
-	string created_at = 11;
-	string updated_at = 22;
+	string first_name = 7;
+	string last_name = 8;
+	string phone = 9;
+	Country country = 10;
+	City city = 11;
+	string postal_code = 12;
+	string created_at = 13;
+	string updated_at = 14;
 }
 
 message Shipment{

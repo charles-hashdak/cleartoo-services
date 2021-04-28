@@ -7,6 +7,7 @@ import(
 	"fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
+	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
 	_ "github.com/pkg/errors"
 )
@@ -14,6 +15,7 @@ import(
 
 type handler struct {
 	repository
+	userClient userPb.UserService
 	cartClient cartPb.CartService
 }
 
@@ -48,6 +50,34 @@ func (s *handler) CreateOffer(ctx context.Context, req *pb.CreateOfferRequest, r
 		return err
 	}
 
+	senderRes, err2 := s.userClient.Get(ctx, &userPb.User{
+		Id: req.Offer.UserId,
+	})
+	if err2 != nil {
+		return err2
+	}
+
+	products, err4 := s.repository.GetProducts(ctx, MarshalGetRequest(&pb.GetRequest{
+		Filters: []pb.Filter{pb.Filter{
+			Key: "_id",
+			Condition: "$eq",
+			Value: req.ProductId,
+			Hex: true,
+		}},
+	}))
+	if err4 != nil {
+		return err4
+	}
+
+	notifRes, err3 := s.userClient.SendNotification(ctx, &userPb.Notification{
+		UserId: products[0].Owner.OwnerID,
+		Title: "New offer from "+senderRes.User.Username+"!",
+		Body: "",
+	})
+	if err3 != nil {
+		return err3
+	}
+
 	res.Created = true
 	res.Offer = req.Offer
 	return nil
@@ -80,6 +110,13 @@ func (s *handler) GetProducts(ctx context.Context, req *pb.GetRequest, res *pb.G
 			return err2
 		}
 		product.InCart = inCartRes.In
+		if len(product.Offers) > 0 {
+			for _, offer := range product.Offers {
+				if offer.UserID == req.UserId && offer.Status == "accepted" {
+					product.Price = offer.Amount
+				}
+			}
+		}
 	}
 	res.Products = UnmarshalProductCollection(products, req.UserId)
 	return nil
