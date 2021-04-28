@@ -18,7 +18,7 @@ import(
 type Comment struct{
 	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
 	UserID 			string 				`json:"user_id"`
-	SubjectID 		string 				`json:"subject_id"`
+	SubjectID 		string 				`bson:"subject_id,omitempty"`
 	Message 		string 				`json:"message"`
 	SendAt 			string 				`json:"send_at"`
 	Username 		string 				`json:"username"`

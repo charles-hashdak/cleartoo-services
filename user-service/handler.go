@@ -56,31 +56,33 @@ func (srv *service) SendNotification(ctx context.Context, req *pb.Notification, 
 		return err
 	}
 
-    pushToken, err := expo.NewExponentPushToken(user.PushToken)
-    if err != nil {
-        panic(err)
-    }
+	if(user.PushToken != ""){
+	    pushToken, err := expo.NewExponentPushToken(user.PushToken)
+	    if err != nil {
+	        panic(err)
+	    }
 
-    client := expo.NewPushClient(nil)
+	    client := expo.NewPushClient(nil)
 
-    response, err := client.Publish(
-        &expo.PushMessage{
-            To: []expo.ExponentPushToken{pushToken},
-            Body: req.Body,
-            Data: map[string]string{"withSome": "data"},
-            Sound: "default",
-            Title: req.Title,
-            Priority: expo.DefaultPriority,
-        },
-    )
+	    response, err := client.Publish(
+	        &expo.PushMessage{
+	            To: []expo.ExponentPushToken{pushToken},
+	            Body: req.Body,
+	            Data: map[string]string{"withSome": "data"},
+	            Sound: "default",
+	            Title: req.Title,
+	            Priority: expo.DefaultPriority,
+	        },
+	    )
 
-    if err != nil {
-        return err
-    }
+	    if err != nil {
+	        return err
+	    }
 
-    if response.ValidateResponse() != nil {
-        fmt.Println(response.PushMessage.To, "failed")
-    }
+	    if response.ValidateResponse() != nil {
+	        fmt.Println(response.PushMessage.To, "failed")
+	    }
+	}
 
 	return nil
 }

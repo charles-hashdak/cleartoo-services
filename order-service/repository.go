@@ -687,8 +687,18 @@ func (repo *MongoRepository) UpdateWallet(ctx context.Context, req *UpdateWallet
 }
 
 func (repo *MongoRepository) UpdateOrderStatus(ctx context.Context, req *UpdateOrderStatusRequest) (string, error){
-	_, err := repo.orderCollection.UpdateOne(ctx,bson.M{"_id": req.OrderID} , bson.M{"status": "confirmed"})
-	return "confirmed", err
+	if req.Status == "sent" {
+		status, err := repo.GetThaiPostStatus(ctx, req)
+		if err != nil {
+			fmt.Println(err)
+			return "", err
+		}
+		if status == "false" {
+			return "", errors.New(fmt.Sprintf("no package found with this id"))
+		}
+	}
+	_, err := repo.orderCollection.UpdateOne(ctx,bson.M{"_id": req.OrderID} , bson.M{"status": req.Status})
+	return req.Status, err
 }
 
 func (repo *MongoRepository) CancelOrder(ctx context.Context, req *CancelOrderRequest) error{
@@ -701,15 +711,12 @@ func (repo *MongoRepository) GetThaiPostToken(ctx context.Context, req *UpdateOr
 	api_token := os.Getenv("THAI_POST_TOKEN")
 	httpReq, err := http.NewRequest("POST", "https://trackapi.thailandpost.co.th/post/api/v1/authenticate/token", nil)
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Token ("+api_token+")")
+	httpReq.Header.Set("Authorization", "Token "+api_token)
 
 	resp, err := hc.Do(httpReq)
 	if err != nil {
 		fmt.Println(err)
 		return "", errors.New(fmt.Sprintf("thai post request failed... %v", err))
-	}
-	if err != nil {
-		fmt.Println(err)
 	}
 
 	data, err2 := io.ReadAll(resp.Body)
@@ -725,20 +732,32 @@ func (repo *MongoRepository) GetThaiPostToken(ctx context.Context, req *UpdateOr
 	return string(thai_post_token), nil
 }
 
+type GetThaiPostStatusRequest struct {
+	Status   string   `json:"status"`
+	Language string   `json:"language"`
+	Barcode  []string `json:"barcode"`
+}
+
 func (repo *MongoRepository) GetThaiPostStatus(ctx context.Context, req *UpdateOrderStatusRequest) (string, error){
 	hc := http.Client{}
-	api_token := os.Getenv("THAI_POST_TOKEN")
-	httpReq, err := http.NewRequest("POST", "https://trackapi.thailandpost.co.th/post/api/v1/authenticate/token", nil)
+	token, err := repo.GetThaiPostToken(ctx, req)
+	if err != nil {
+		fmt.Println(err)
+		return "", errors.New(fmt.Sprintf("thai post token failed... %v", err))
+	}
+	form, _ := json.Marshal(GetThaiPostStatusRequest{
+		Status: "all",
+		Language: "EN",
+		Barcode: []string{req.TrackID},
+	})
+	httpReq, err := http.NewRequest("POST", "https://trackapi.thailandpost.co.th/post/api/v1/track", bytes.NewBuffer(form))
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Token ("+api_token+")")
+	httpReq.Header.Set("Authorization", "Token "+token)
 
 	resp, err := hc.Do(httpReq)
 	if err != nil {
 		fmt.Println(err)
 		return "", errors.New(fmt.Sprintf("thai post request failed... %v", err))
-	}
-	if err != nil {
-		fmt.Println(err)
 	}
 
 	data, err2 := io.ReadAll(resp.Body)
@@ -749,7 +768,7 @@ func (repo *MongoRepository) GetThaiPostStatus(ctx context.Context, req *UpdateO
 	var result map[string]interface{}
 	fmt.Println(string(data))
 	json.Unmarshal([]byte(string(data)), &result)
-	thai_post_token, _ := json.Marshal(result["token"])
+	status, _ := json.Marshal(result["status"])
 	resp.Body.Close()
-	return string(thai_post_token), nil
+	return string(status), nil
 }
