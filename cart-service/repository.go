@@ -34,6 +34,7 @@ type Product struct{
 	Condition 		string
 	Material 		string
 	OwnerID 		string
+	Weight 			int32
 }
 
 type Photo struct{
@@ -158,6 +159,7 @@ func MarshalProduct(product *pb.Product) *Product{
 		Condition:		product.Condition,
 		Material:		product.Material,
 		OwnerID:		product.OwnerId,
+		Weight:			product.Weight,
 	}
 }
 
@@ -176,6 +178,7 @@ func UnmarshalProduct(product *Product) *pb.Product{
 		Condition:		product.Condition,
 		Material:		product.Material,
 		OwnerId:		product.OwnerID,
+		Weight:			product.Weight,
 	}
 }
 

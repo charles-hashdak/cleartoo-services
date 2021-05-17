@@ -58,18 +58,18 @@ func (s *handler) CreateOffer(ctx context.Context, req *pb.CreateOfferRequest, r
 	}
 
 	products, err4 := s.repository.GetProducts(ctx, MarshalGetRequest(&pb.GetRequest{
-		Filters: []pb.Filter{pb.Filter{
+		Filters: []*pb.Filter{{
 			Key: "_id",
 			Condition: "$eq",
 			Value: req.ProductId,
 			Hex: true,
 		}},
-	}))
+	}), s.userClient)
 	if err4 != nil {
 		return err4
 	}
 
-	notifRes, err3 := s.userClient.SendNotification(ctx, &userPb.Notification{
+	_, err3 := s.userClient.SendNotification(ctx, &userPb.Notification{
 		UserId: products[0].Owner.OwnerID,
 		Title: "New offer from "+senderRes.User.Username+"!",
 		Body: "",
@@ -96,7 +96,7 @@ func (s *handler) EditOffer(ctx context.Context, req *pb.Offer, res *pb.EditOffe
 }
 
 func (s *handler) GetProducts(ctx context.Context, req *pb.GetRequest, res *pb.GetProductsResponse) error {
-	products, err := s.repository.GetProducts(ctx, MarshalGetRequest(req))
+	products, err := s.repository.GetProducts(ctx, MarshalGetRequest(req), s.userClient)
 	if err != nil {
 		return err
 	}

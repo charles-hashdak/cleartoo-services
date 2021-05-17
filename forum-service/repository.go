@@ -262,8 +262,7 @@ func (repo *MongoRepository) Comment(ctx context.Context, comment *Comment) erro
 
 func (repo *MongoRepository) GetComments(ctx context.Context, req *GetCommentsRequest) ([]*Comment, error){
 	bsonFilters := bson.D{}
-	subjectId, _ := primitive.ObjectIDFromHex(req.SubjectID)
-	bsonFilters = append(bsonFilters, bson.E{"subjectid", bson.D{bson.E{"$eq", subjectId}}})
+	bsonFilters = append(bsonFilters, bson.E{"subject_id", bson.D{bson.E{"$eq", req.SubjectID}}})
 	cur, err := repo.commentCollection.Find(ctx,  bsonFilters)
 	//cur, err := repo.commentCollection.Find(ctx,  bsonFilters, options.Find().SetShowRecordID(true), options.Find().SetLimit(req.Limit), options.Find().SetSkip(req.Offset))
 	var comments []*Comment

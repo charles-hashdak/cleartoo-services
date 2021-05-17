@@ -4,6 +4,7 @@ package main
 
 import(
 	"context"
+	"fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/shipping-service/proto/shipping"
 	_ "github.com/pkg/errors"
@@ -82,6 +83,7 @@ func (s *handler) GetShippingFees(ctx context.Context, req *pb.GetShippingFeesRe
 	if err != nil {
 		return err
 	}
+	fmt.Println(shippingFees)
 	res.ShippingFees = shippingFees
 	return nil;
 }

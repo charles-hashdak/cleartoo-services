@@ -31,7 +31,19 @@ message Order{
 	string status = 8;
 	string shipping_method = 9;
 	string payment_method = 10;
-	string address_id = 11;
+	Address address = 11;
+	string track_id = 12;
+}
+
+message Address{
+	string indications = 1;
+	string address_line1 = 2;
+	string first_name = 3;
+	string last_name = 4;
+	string phone = 5;
+	string country = 6;
+	string city = 7;
+	string postal_code = 8;
 }
 
 message Product{
@@ -48,6 +60,7 @@ message Product{
 	string condition = 11;
 	string material = 12;
 	string owner_id = 13;
+	int32 weight = 14;
 }
 
 message Card{

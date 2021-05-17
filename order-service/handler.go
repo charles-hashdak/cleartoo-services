@@ -17,6 +17,7 @@ type handler struct{
 	cartClient cartPb.CartService
 	userClient userPb.UserService
 	addOrderMutex sync.Mutex
+	updateOrderStatusMutex sync.Mutex
 }
 
 func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.OrderResponse) error {
@@ -64,6 +65,8 @@ func (s *handler) UpdateOrderStatus(ctx context.Context, req *pb.UpdateOrderStat
 }
 
 func (s *handler) CancelOrder(ctx context.Context, req *pb.CancelOrderRequest, res *pb.CancelOrderResponse) error {
+	s.updateOrderStatusMutex.Lock()
+	defer s.updateOrderStatusMutex.Unlock()
 	err := s.repository.CancelOrder(ctx, MarshalCancelOrderRequest(req))
 	if err != nil {
 		return err
@@ -91,7 +94,7 @@ func (s *handler) GetInTransitOrders(ctx context.Context, req *pb.GetRequest, re
 }
 
 func (s *handler) GetSales(ctx context.Context, req *pb.GetRequest, res *pb.GetResponse) error {
-	orders, err := s.repository.GetOrders(ctx, MarshalGetRequest(req))
+	orders, err := s.repository.GetSales(ctx, MarshalGetRequest(req))
 	if err != nil {
 		return err
 	}

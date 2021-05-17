@@ -1,14 +1,14 @@
 package main
 
 import (
-	"context"
+	_ "context"
 	"fmt"
 
 	orderPb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
 )
 
-func checkInTransit(ctx context.Context, orderClient orderPb.OrderService) error {
-	ordersRes, err := orderClient.GetInTransitOrders(ctx, &orderPb.GetRequest{})
+func checkInTransit(orderClient orderPb.OrderService) error {
+	ordersRes, err := orderClient.GetInTransitOrders(nil, &orderPb.GetRequest{})
 	if err != nil {
 		return err
 	}

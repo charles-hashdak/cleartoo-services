@@ -9,6 +9,7 @@ import(
 	"strconv"
 
 	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
+	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -747,7 +748,7 @@ type repository interface{
 	EditProduct(ctx context.Context, product *Product) error
 	CreateOffer(ctx context.Context, offer *CreateOfferRequest) error
 	EditOffer(ctx context.Context, offer *Offer) error
-	GetProducts(ctx context.Context, req *GetRequest) ([]*Product, error)
+	GetProducts(ctx context.Context, req *GetRequest, userClient userPb.UserService) ([]*Product, error)
 	GetProduct(ctx context.Context, req *GetRequest) (*Product, error)
 	Wish(ctx context.Context, req *GetRequest) error
 	GetWishes(ctx context.Context, req *GetRequest) ([]*Product, error)
@@ -830,7 +831,7 @@ func (repo *MongoRepository) EditOffer(ctx context.Context, offer *Offer) error{
 	return err
 }
 
-func (repo *MongoRepository) GetProducts(ctx context.Context, req *GetRequest) ([]*Product, error){
+func (repo *MongoRepository) GetProducts(ctx context.Context, req *GetRequest, userClient userPb.UserService) ([]*Product, error){
 	filters := req.Filters
 	bsonFilters := bson.D{}
 	for _, f := range filters {
@@ -838,7 +839,17 @@ func (repo *MongoRepository) GetProducts(ctx context.Context, req *GetRequest) (
 			f.Condition = "$eq";
 		}
 		if(f.Condition == "$in"){
-			newValue := strings.Split(f.Value, ",")
+			var newValue []string
+			if(f.Value == "following"){
+				usersRes, _ := userClient.GetFollowing(ctx, &userPb.User{
+					Id: req.UserID,
+				})
+				for _, user := range usersRes.Users {
+					newValue = append(newValue, user.Id)
+				}
+			}else{
+				newValue = strings.Split(f.Value, ",")
+			}
 			if(f.Hex == true){
 				var finalValue []primitive.ObjectID
 				for _, v := range newValue {
