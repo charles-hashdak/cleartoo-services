@@ -32,8 +32,8 @@ func (s *handler) Send(ctx context.Context, chat *pb.Chat, res *pb.SendResponse)
 		return err2
 	}
 
-	notifRes, err3 := s.userClient.SendNotification(ctx, &userPb.Notification{
-		UserId: chat.receiverId,
+	_, err3 := s.userClient.SendNotification(ctx, &userPb.Notification{
+		UserId: chat.ReceiverId,
 		Title: "New message from "+senderRes.User.Username+"!",
 		Body: chat.Message,
 	})
@@ -76,15 +76,21 @@ func (s *handler) GetConversations(ctx context.Context, req *pb.GetConversations
 		}
 		conversation.Avatar.Url = userRes.User.AvatarUrl
 		conversation.Username = userRes.User.Username
-		productRes, err3 := s.catalogClient.GetProduct(ctx, &catalogPb.GetRequest{
+
+		productsRes, err4 := s.catalogClient.GetProducts(ctx, &catalogPb.GetRequest{
 			UserId: userId,
-			ProductId: conversation.Product.ID.Hex(),
+			Filters: []*catalogPb.Filter{{
+				Key: "_id",
+				Condition: "$eq",
+				Value: conversation.Product.ID.Hex(),
+				Hex: true,
+			}},
 		})
-		if err3 != nil {
-			fmt.Println(err3)
-			return err3
+		if err4 != nil {
+			return err4
 		}
-		conversation.Product.InCart = productRes.InCart
+
+		conversation.Product.InCart = productsRes.Products[0].InCart
 	}
 	res.Conversations = UnmarshalConversations(conversations)
 	return nil

@@ -87,8 +87,8 @@ type City struct{
 }
 
 type ShippingFees struct{
-	ShippingMethod 	string 				`json:"shippingmethod"`
-	ShippingFees 	[]*ShippingFee 		`json:"shippingfees"`
+	ShippingMethod 	string 				`json:"shipping_method"`
+	ShippingFees 	[]*ShippingFee 		`json:"shipping_fees"`
 }
 
 type ShippingFee struct{
@@ -444,27 +444,34 @@ func (repo *MongoRepository) GetCities(ctx context.Context, req *GetRequest) ([]
 
 func (repo *MongoRepository) GetShippingFees(ctx context.Context, req *GetShippingFeesRequest) (int32, error){
 	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"shippingmethod", bson.D{bson.E{"$eq", req.ShippingMethod}}})
+	bsonFilters = append(bsonFilters, bson.E{"shipping_method", bson.D{bson.E{"$eq", req.ShippingMethod}}})
 	cur, err := repo.shippingFeesCollection.Find(ctx, bsonFilters)
 	if err != nil {
+		fmt.Println(err)
 		return 0, err
 	}
 	var price int32
 	price = 0
 	for cur.Next(ctx) {
-		var shippingFees *ShippingFees
+		var shippingFees bson.M
 		if err2 := cur.Decode(&shippingFees); err2 != nil {
+			fmt.Println(err2)
 			return 0, err2
 		}
-		for _, fees := range shippingFees.ShippingFees {
-			if req.Weight <= fees.Weight {
-				price = fees.Price
+		fmt.Println(shippingFees["shipping_fees"])
+		for _, fees := range []interface{}(shippingFees["shipping_fees"].(primitive.A)) {
+			conv_fees := map[string]interface{}(fees.(primitive.M))
+			fmt.Println(conv_fees["weight"].(int32))
+			fmt.Println(req.Weight)
+			if req.Weight >= conv_fees["weight"].(int32) {
+				fmt.Println("inf")
+				price = conv_fees["price"].(int32)
 			}
-			if req.Weight > fees.Weight {
-				return price, err
+			if req.Weight < conv_fees["weight"].(int32) {
+				fmt.Println("ok")
+				return conv_fees["price"].(int32), err
 			}
 		}
-		fmt.Println(shippingFees)
 	}
 	return price, err
 }

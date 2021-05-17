@@ -41,6 +41,19 @@ type Order struct{
 	Status 			string 				`json:"status"`
 	ShippingMethod 	string 				`json:"shipping_method"`
 	PaymentMethod 	string 				`json:"payment_method"`
+	Address 		Address 			`json:"address"`
+	TrackID 		string 				`json:"track_id"`
+}
+
+type Address struct{
+	Indications 	string 				`json:"indications"`
+	AddressLine1 	string 				`json:"address_line1"`
+	FirstName 		string 				`json:"first_name"`
+	LastName 		string 				`json:"last_name"`
+	Phone 			string 				`json:"phone"`
+	Country 		string 				`json:"country"`
+	City 			string 				`json:"city"`
+	PostalCode		string 				`json:"postal_code"`
 }
 
 type Card struct{
@@ -70,6 +83,7 @@ type Product struct{
 	Available 		bool
 	Title 			string
 	Price 			int32
+	Weight 			int32
 	Photo 			Photo
 	Category 		string
 	Size 			string
@@ -313,6 +327,7 @@ func MarshalProduct(product *pb.Product) *Product{
 		Available:		product.Available,
 		Title:			product.Title,
 		Price:			product.Price,
+		Weight:			product.Weight,
 		Photo:			*MarshalPhoto(product.Photo),
 		Category:		product.Category,
 		Size:			product.Size,
@@ -331,6 +346,7 @@ func UnmarshalProduct(product *Product) *pb.Product{
 		Available:		product.Available,
 		Title:			product.Title,
 		Price:			product.Price,
+		Weight:			product.Weight,
 		Photo:			UnmarshalPhoto(&product.Photo),
 		Category:		product.Category,
 		Size:			product.Size,
@@ -410,6 +426,8 @@ func MarshalOrder(order *pb.Order) *Order{
 		Status:			order.Status,
 		ShippingMethod:	order.ShippingMethod,
 		PaymentMethod:	order.PaymentMethod,
+		Address:		*MarshalAddress(order.Address),
+		TrackID:		order.TrackId,
 	}
 }
 
@@ -425,6 +443,34 @@ func UnmarshalOrder(order *Order) *pb.Order{
 		Status:			order.Status,
 		ShippingMethod:	order.ShippingMethod,
 		PaymentMethod:	order.PaymentMethod,
+		Address:		UnmarshalAddress(&order.Address),
+		TrackId:		order.TrackID,
+	}
+}
+
+func MarshalAddress(address *pb.Address) *Address{
+	return &Address{
+		Indications: 	address.Indications,
+		AddressLine1: 	address.AddressLine1,
+		FirstName: 		address.FirstName,
+		LastName: 		address.LastName,
+		Phone: 			address.Phone,
+		Country: 		address.Country,
+		City: 			address.City,
+		PostalCode:		address.PostalCode,
+	}
+}
+
+func UnmarshalAddress(address *Address) *pb.Address{
+	return &pb.Address{
+		Indications: 	address.Indications,
+		AddressLine1: 	address.AddressLine1,
+		FirstName: 		address.FirstName,
+		LastName: 		address.LastName,
+		Phone: 			address.Phone,
+		Country: 		address.Country,
+		City: 			address.City,
+		PostalCode:		address.PostalCode,
 	}
 }
 
@@ -501,7 +547,7 @@ type repository interface{
 	CancelOrder(ctx context.Context, req *CancelOrderRequest) error
 	AddTransaction(ctx context.Context, req *AddTransactionRequest) error
 	GetThaiPostToken(ctx context.Context, req *UpdateOrderStatusRequest) (string, error)
-	GetThaiPostStatus(ctx context.Context, req *UpdateOrderStatusRequest) (string, error)
+	GetThaiPostStatus(ctx context.Context, req *UpdateOrderStatusRequest) (bool, error)
 }
 
 type MongoRepository struct{
@@ -616,6 +662,10 @@ func (repo *MongoRepository) GetOrders(ctx context.Context, req *GetRequest) ([]
 	bsonFilters = append(bsonFilters, bson.E{"userid", bson.D{bson.E{"$eq", req.UserID}}})
 	opts := options.Find().SetShowRecordID(true)
 	cur, err := repo.orderCollection.Find(ctx,  bsonFilters, opts)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
 	var orders []*Order
 	for cur.Next(ctx) {
 		var order *Order
@@ -632,6 +682,10 @@ func (repo *MongoRepository) GetInTransitOrders(ctx context.Context, req *GetReq
 	bsonFilters = append(bsonFilters, bson.E{"status", bson.D{bson.E{"$eq", "sent"}}})
 	opts := options.Find().SetShowRecordID(true)
 	cur, err := repo.orderCollection.Find(ctx,  bsonFilters, opts)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
 	var orders []*Order
 	for cur.Next(ctx) {
 		var order *Order
@@ -645,9 +699,13 @@ func (repo *MongoRepository) GetInTransitOrders(ctx context.Context, req *GetReq
 
 func (repo *MongoRepository) GetSales(ctx context.Context, req *GetRequest) ([]*Order, error){
 	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"products.ownerid", bson.D{bson.E{"$elemMatch", req.UserID}}})
+	bsonFilters = append(bsonFilters, bson.E{"products", bson.D{{"$elemMatch", bson.D{{"ownerid", req.UserID}}}}})
 	opts := options.Find().SetShowRecordID(true)
 	cur, err := repo.orderCollection.Find(ctx,  bsonFilters, opts)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
 	var orders []*Order
 	for cur.Next(ctx) {
 		var order *Order
@@ -661,7 +719,7 @@ func (repo *MongoRepository) GetSales(ctx context.Context, req *GetRequest) ([]*
 
 func (repo *MongoRepository) GetWallet(ctx context.Context, req *GetWalletRequest) (*Wallet, error){
 	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"user_id", bson.D{bson.E{"$eq", req.UserID}}})
+	bsonFilters = append(bsonFilters, bson.E{"userid", bson.D{bson.E{"$eq", req.UserID}}})
 	var wallet *Wallet
 	err := repo.walletCollection.FindOne(ctx, bsonFilters, nil).Decode(&wallet)
 	return wallet, err
@@ -687,18 +745,33 @@ func (repo *MongoRepository) UpdateWallet(ctx context.Context, req *UpdateWallet
 }
 
 func (repo *MongoRepository) UpdateOrderStatus(ctx context.Context, req *UpdateOrderStatusRequest) (string, error){
+	orderId, _ := primitive.ObjectIDFromHex(req.OrderID)
 	if req.Status == "sent" {
 		status, err := repo.GetThaiPostStatus(ctx, req)
 		if err != nil {
 			fmt.Println(err)
 			return "", err
 		}
-		if status == "false" {
+		if status == false {
 			return "", errors.New(fmt.Sprintf("no package found with this id"))
 		}
+		update := bson.M{
+		    "$set": bson.M{
+		      "status": req.Status,
+		      "track_id": req.TrackID,
+		    },
+	  	}
+		_, err = repo.orderCollection.UpdateOne(ctx, bson.M{"_id": orderId}, update)
+		return req.Status, err
+	}else{
+		update := bson.M{
+		    "$set": bson.M{
+		      "status": req.Status,
+		    },
+	  	}
+		_, err := repo.orderCollection.UpdateOne(ctx, bson.M{"_id": orderId}, update)
+		return req.Status, err
 	}
-	_, err := repo.orderCollection.UpdateOne(ctx,bson.M{"_id": req.OrderID} , bson.M{"status": req.Status})
-	return req.Status, err
 }
 
 func (repo *MongoRepository) CancelOrder(ctx context.Context, req *CancelOrderRequest) error{
@@ -725,7 +798,6 @@ func (repo *MongoRepository) GetThaiPostToken(ctx context.Context, req *UpdateOr
 		return "", errors.New(fmt.Sprintf("pthai post body lecture failed... %v", err2))
 	}
 	var result map[string]interface{}
-	fmt.Println(string(data))
 	json.Unmarshal([]byte(string(data)), &result)
 	thai_post_token, _ := json.Marshal(result["token"])
 	resp.Body.Close()
@@ -738,13 +810,9 @@ type GetThaiPostStatusRequest struct {
 	Barcode  []string `json:"barcode"`
 }
 
-func (repo *MongoRepository) GetThaiPostStatus(ctx context.Context, req *UpdateOrderStatusRequest) (string, error){
+func (repo *MongoRepository) GetThaiPostStatus(ctx context.Context, req *UpdateOrderStatusRequest) (bool, error){
 	hc := http.Client{}
-	token, err := repo.GetThaiPostToken(ctx, req)
-	if err != nil {
-		fmt.Println(err)
-		return "", errors.New(fmt.Sprintf("thai post token failed... %v", err))
-	}
+	// token := os.Getenv("THAI_POST_TOKEN")
 	form, _ := json.Marshal(GetThaiPostStatusRequest{
 		Status: "all",
 		Language: "EN",
@@ -752,23 +820,28 @@ func (repo *MongoRepository) GetThaiPostStatus(ctx context.Context, req *UpdateO
 	})
 	httpReq, err := http.NewRequest("POST", "https://trackapi.thailandpost.co.th/post/api/v1/track", bytes.NewBuffer(form))
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Token "+token)
+	httpReq.Header.Set("Authorization", "Token eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJzZWN1cmUtYXBpIiwiYXVkIjoic2VjdXJlLWFwcCIsInN1YiI6IkF1dGhvcml6YXRpb24iLCJleHAiOjE2MjM2OTM0MzAsInJvbCI6WyJST0xFX1VTRVIiXSwiZCpzaWciOnsicCI6InpXNzB4IiwicyI6bnVsbCwidSI6IjhmYWM3Yjc3MWZiYTFjYjQ2ZGFhZmQ2NDE4NDdkM2JhIiwiZiI6InhzeiM5In19.Ql6_iQo8EhAl3SCzNW6PAmpamNwTNgdFn_gppAFxZXiXQInvYnonsqLxnEr2gR5VtkXVRF7lyiPdOXlfpG-NfQ")
 
 	resp, err := hc.Do(httpReq)
 	if err != nil {
 		fmt.Println(err)
-		return "", errors.New(fmt.Sprintf("thai post request failed... %v", err))
+		return false, errors.New(fmt.Sprintf("thai post request failed... %v", err))
 	}
 
 	data, err2 := io.ReadAll(resp.Body)
 	if err2 != nil {
 		fmt.Println(err2)
-		return "", errors.New(fmt.Sprintf("pthai post body lecture failed... %v", err2))
+		return false, errors.New(fmt.Sprintf("pthai post body lecture failed... %v", err2))
 	}
 	var result map[string]interface{}
 	fmt.Println(string(data))
 	json.Unmarshal([]byte(string(data)), &result)
 	status, _ := json.Marshal(result["status"])
+	// status := result["status"].(map[string]interface{})
+	// if status["status"] != true {
+	// 	return "", errors.New(fmt.Sprintf("thai post response incorrect... %v", err2))
+	// }
 	resp.Body.Close()
-	return string(status), nil
+	rslt, _ := strconv.ParseBool(string(status))
+	return rslt, nil
 }

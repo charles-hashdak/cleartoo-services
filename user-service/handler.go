@@ -6,6 +6,8 @@ import (
 	"errors"
 	"log"
 	"os"
+	_ "bytes"
+	_ "html/template"
 	"context"
 	"strings"
 	"strconv"
@@ -118,6 +120,15 @@ func (srv *service) IsFollowing(ctx context.Context, follower *pb.Follower, res 
 
 func (srv *service) GetAll(ctx context.Context, req *pb.Request, res *pb.Response) error {
 	users, err := srv.repo.GetAll()
+	if err != nil {
+		return err
+	}
+	res.Users = users
+	return nil
+}
+
+func (srv *service) GetFollowing(ctx context.Context, req *pb.User, res *pb.Response) error {
+	users, err := srv.repo.GetFollowing(req.Id)
 	if err != nil {
 		return err
 	}
@@ -320,6 +331,22 @@ func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Res
 
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	// t, _ := template.ParseFiles("emails/password_recovery.html")
+
+	// var body bytes.Buffer
+
+	// headers := "MIME-version: 1.0;\nContent-Type: text/html;"
+
+	// body.Write([]byte(fmt.Sprintf("From: Cleartoo <no_reply@cleartoo.co.th>\r\nTo: "+req.Email+"\r\nSubject: Password reset!\r\n%s\n\n", headers)))
+
+	// t.Execute(&body, struct {
+	// 	Username 	string
+	// 	Password 	string
+	// }{
+	// 	Username: 	user.Username,
+	// 	Password:	plainPassword,
+	// })
 
 	// Sending email.
 	mailErr := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)

@@ -1,7 +1,8 @@
 package main
 
 import (
-	"fmt"
+	_ "fmt"
+	"strings"
 
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"github.com/jinzhu/gorm"
@@ -16,6 +17,7 @@ type Repository interface {
 	ChangePassword(user *pb.User) error
 	Follow(req *pb.Follower) error
 	IsFollowing(req *pb.Follower) (bool, error)
+	GetFollowing(follower_id string) ([]*pb.User, error)
 	GetByEmail(email string) (*pb.User, error)
 }
 
@@ -41,19 +43,17 @@ func (repo *UserRepository) Get(id string) (*pb.User, error) {
 }
 
 func (repo *UserRepository) GetByEmail(email string) (*pb.User, error) {
-	fmt.Println(email)
 	user := &pb.User{}
 	if err := repo.db.Where("email = ?", email).
 		First(&user).Error; err != nil {
 		return nil, err
 	}
-	fmt.Println(user)
 	return user, nil
 }
 
 func (repo *UserRepository) Create(user *pb.User) error {
-	fmt.Println(user)
 	user.Id = uuid.NewV4().String()
+	user.Email = strings.ToLower(user.Email)
 	// var usernameId = 1000 + rand.Intn(9999-1000)
 	// user.Username = strings.Split(user.Email, string('@'))[0] + strconv.Itoa(usernameId)
 	user.Rating = 0;
@@ -66,7 +66,6 @@ func (repo *UserRepository) Create(user *pb.User) error {
 }
 
 func (repo *UserRepository) Edit(user *pb.User) error {
-	fmt.Println(user)
 	if err := repo.db.Model(&user).Updates(map[string]interface{}{"username": user.Username, "description": user.Description, "avatar_url": user.AvatarUrl, "cover_url": user.CoverUrl, "age": user.Age, "push_token": user.PushToken}).Error; err != nil {
 		return err
 	}
@@ -74,7 +73,7 @@ func (repo *UserRepository) Edit(user *pb.User) error {
 }
 
 func (repo *UserRepository) ChangePassword(user *pb.User) error {
-	if err := repo.db.Model(&user).Updates(map[string]interface{}{"password": user.Password}).Error; err != nil {
+	if err := repo.db.Model(&user).Where("email = ?", user.Email).Update("password", user.Password).Error; err != nil {
 		return err
 	}
 	return nil
@@ -124,4 +123,13 @@ func (repo *UserRepository) IsFollowing(follower *pb.Follower) (bool, error) {
 	}else{
 		return false, nil
 	}
+}
+
+func (repo *UserRepository) GetFollowing(follower_id string) ([]*pb.User, error) {
+	var users []*pb.User
+	err := repo.db.Table("users").Select("users.id").Joins("LEFT JOIN followers ON followers.user_id = users.id AND followers.follower_id = "+follower_id).Scan(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
 }

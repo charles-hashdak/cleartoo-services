@@ -1,4 +1,4 @@
-// order-service/main.go
+		// order-service/main.go
 
 package main
 
@@ -40,9 +40,10 @@ func main(){
 	cartClient := cartPb.NewCartService("cleartoo.cart", service.Client())
 	userClient := userPb.NewUserService("cleartoo.user", service.Client())
 
-	mutex := sync.Mutex{}
+	addOrderMutex := sync.Mutex{}
+	updateOrderStatusMutex := sync.Mutex{}
 
-	h := &handler{repository, cartClient, userClient, mutex}
+	h := &handler{repository, cartClient, userClient, addOrderMutex, updateOrderStatusMutex}
 
 	if err := pb.RegisterOrderServiceHandler(service.Server(), h); err != nil{
 		fmt.Println(err)

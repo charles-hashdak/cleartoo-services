@@ -11,6 +11,7 @@ service UserService {
     rpc Get(User) returns (Response) {}
     rpc SendNotification(Notification) returns (Response) {}
     rpc GetAll(Request) returns (Response) {}
+    rpc GetFollowing(User) returns (Response) {}
     rpc Auth(User) returns (Response) {}
     rpc ValidateToken(Token) returns (Token) {}
     rpc Follow(Follower) returns (FollowResponse) {}
