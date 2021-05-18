@@ -43,6 +43,18 @@ func (s *handler) EditProduct(ctx context.Context, req *pb.Product, res *pb.Edit
 	return nil
 }
 
+func (s *handler) Unavailable(ctx context.Context, req *pb.Product, res *pb.EditProductResponse) error {
+
+	// Save our product
+	if err := s.repository.Unavailable(ctx, MarshalProduct(req)); err != nil {
+		return err
+	}
+
+	res.Edited = true
+	res.Product = req
+	return nil
+}
+
 func (s *handler) CreateOffer(ctx context.Context, req *pb.CreateOfferRequest, res *pb.CreateOfferResponse) error {
 
 	// Save our offer

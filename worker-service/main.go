@@ -1,4 +1,4 @@
-// catalog-service/main.go
+// worker-service/main.go
 
 package main
 
@@ -26,7 +26,7 @@ func main(){
 
 	for true {
         fmt.Println("Infinite Loop 2")
-        checkInTransit(orderClient)
-        time.Sleep(time.Second*300)
+        //checkInTransit(orderClient)
+        time.Sleep(time.Second*10)
     }
 }

@@ -9,12 +9,14 @@ import(
 
 	pb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
 	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
+	catalogPb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
 	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 )
 
 type handler struct{
 	repository
 	cartClient cartPb.CartService
+	catalogClient catalogPb.CatalogService
 	userClient userPb.UserService
 	addOrderMutex sync.Mutex
 	updateOrderStatusMutex sync.Mutex
@@ -33,22 +35,32 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 
 	res.Added = true
 
-	_, err2 := s.cartClient.EmptyCart(ctx, &cartPb.GetRequest{
+	_, err = s.cartClient.EmptyCart(ctx, &cartPb.GetRequest{
 		UserId: req.Order.UserId,
 	})
 
-	if err2 != nil{
-		return err2
+	if err != nil{
+		return err
 	}
 
-	_, err3 := s.userClient.SendNotification(ctx, &userPb.Notification{
+	for item := range req.Order.Products {
+		_, err = s.catalogClient.Unavailable(ctx, &catalogPb.Product{
+			Id: item.Id,
+		})
+
+		if err != nil{
+			return err
+		}
+	}
+
+	_, err = s.userClient.SendNotification(ctx, &userPb.Notification{
 		UserId: req.Order.Products[0].OwnerId,
 		Title: "New order!",
 		Body: "Check your sales!",
 	})
 
-	if err3 != nil{
-		return err3
+	if err != nil{
+		return err
 	}
 	
 	return nil

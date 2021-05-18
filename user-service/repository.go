@@ -66,7 +66,7 @@ func (repo *UserRepository) Create(user *pb.User) error {
 }
 
 func (repo *UserRepository) Edit(user *pb.User) error {
-	if err := repo.db.Model(&user).Updates(map[string]interface{}{"username": user.Username, "description": user.Description, "avatar_url": user.AvatarUrl, "cover_url": user.CoverUrl, "age": user.Age, "push_token": user.PushToken}).Error; err != nil {
+	if err := repo.db.Model(&user).Updates(map[string]interface{}{"username": user.Username, "description": user.Description, "avatar_url": user.AvatarUrl, "cover_url": user.CoverUrl, "age": user.Age, "email": user.Email, "push_token": user.PushToken}).Error; err != nil {
 		return err
 	}
 	return nil
@@ -127,7 +127,7 @@ func (repo *UserRepository) IsFollowing(follower *pb.Follower) (bool, error) {
 
 func (repo *UserRepository) GetFollowing(follower_id string) ([]*pb.User, error) {
 	var users []*pb.User
-	err := repo.db.Table("users").Select("users.id").Joins("LEFT JOIN followers ON followers.user_id = users.id AND followers.follower_id = "+follower_id).Scan(&users).Error
+	err := repo.db.Table("users").Select("users.id").Joins("LEFT JOIN followers ON followers.user_id = users.id AND followers.follower_id = '"+follower_id+"'").Scan(&users).Error
 	if err != nil {
 		return nil, err
 	}

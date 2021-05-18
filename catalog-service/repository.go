@@ -746,6 +746,7 @@ func UnmarshalFilters(filters Filters) []*pb.Filter {
 type repository interface{
 	CreateProduct(ctx context.Context, product *Product) error
 	EditProduct(ctx context.Context, product *Product) error
+	Unavailable(ctx context.Context, product *Product) error
 	CreateOffer(ctx context.Context, offer *CreateOfferRequest) error
 	EditOffer(ctx context.Context, offer *Offer) error
 	GetProducts(ctx context.Context, req *GetRequest, userClient userPb.UserService) ([]*Product, error)
@@ -778,6 +779,7 @@ func (repo *MongoRepository) CreateProduct(ctx context.Context, product *Product
 	product.Wishers = []string{}
 	product.WishlistCount = 0
 	product.Offers = Offers{}
+	product.Available = true
 	_, err := repo.productsCollection.InsertOne(ctx, product)
 	return err
 }
@@ -788,6 +790,7 @@ func (repo *MongoRepository) EditProduct(ctx context.Context, product *Product) 
 	    "$set": bson.M{
 	      "title": product.Title,
 	      "description": product.Description,
+	      "available": product.Available,
 	      "price": product.Price,
 	      "brand": product.Brand,
 	      "condition": product.Condition,
@@ -800,6 +803,16 @@ func (repo *MongoRepository) EditProduct(ctx context.Context, product *Product) 
 	      "size": product.Size,
 	      "photos": product.Photos,
 	      "deleted": product.Deleted,
+	    },
+	  }
+	_, err := repo.productsCollection.UpdateOne(ctx, bson.M{"_id": product.ID}, update)
+	return err
+}
+
+func (repo *MongoRepository) Unavailable(ctx context.Context, product *Product) error{
+	update := bson.M{
+	    "$set": bson.M{
+	      "available": false,
 	    },
 	  }
 	_, err := repo.productsCollection.UpdateOne(ctx, bson.M{"_id": product.ID}, update)
@@ -841,9 +854,12 @@ func (repo *MongoRepository) GetProducts(ctx context.Context, req *GetRequest, u
 		if(f.Condition == "$in"){
 			var newValue []string
 			if(f.Value == "following"){
-				usersRes, _ := userClient.GetFollowing(ctx, &userPb.User{
+				usersRes, err := userClient.GetFollowing(ctx, &userPb.User{
 					Id: req.UserID,
 				})
+				if err != nil {
+					return nil, err
+				}
 				for _, user := range usersRes.Users {
 					newValue = append(newValue, user.Id)
 				}
@@ -916,7 +932,7 @@ func (repo *MongoRepository) GetWishes(ctx context.Context, req *GetRequest) ([]
 	userId := req.UserID
 	bsonFilters := bson.D{}
 	bsonFilters = append(bsonFilters, bson.E{"wishers", bson.D{bson.E{"$elemMatch", bson.D{bson.E{"$eq", userId}}}}})
-	//bsonFilters = append(bsonFilters, bson.E{"Available", bson.D{bson.E{"$eq", true}}})
+	bsonFilters = append(bsonFilters, bson.E{"Available", bson.D{bson.E{"$eq", true}}})
 	opts := options.Find().SetShowRecordID(true)
 	cur, err := repo.productsCollection.Find(ctx, bsonFilters, opts)
 	var products []*Product

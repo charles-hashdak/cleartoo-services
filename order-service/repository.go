@@ -842,6 +842,7 @@ func (repo *MongoRepository) GetThaiPostStatus(ctx context.Context, req *UpdateO
 	// 	return "", errors.New(fmt.Sprintf("thai post response incorrect... %v", err2))
 	// }
 	resp.Body.Close()
+	fmt.Println(string(status))
 	rslt, _ := strconv.ParseBool(string(status))
 	return rslt, nil
 }
