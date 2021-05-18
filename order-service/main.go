@@ -11,6 +11,7 @@ import(
 
 	pb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
 	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
+	catalogPb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
 	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"github.com/micro/go-micro/v2"
 )
@@ -37,13 +38,14 @@ func main(){
 
 	repository := &MongoRepository{orderCollection, walletCollection, transactionCollection}
 
+	catalogClient := catalogPb.NewCartService("cleartoo.catalog", service.Client())
 	cartClient := cartPb.NewCartService("cleartoo.cart", service.Client())
 	userClient := userPb.NewUserService("cleartoo.user", service.Client())
 
 	addOrderMutex := sync.Mutex{}
 	updateOrderStatusMutex := sync.Mutex{}
 
-	h := &handler{repository, cartClient, userClient, addOrderMutex, updateOrderStatusMutex}
+	h := &handler{repository, cartClient, catalogClient, userClient, addOrderMutex, updateOrderStatusMutex}
 
 	if err := pb.RegisterOrderServiceHandler(service.Server(), h); err != nil{
 		fmt.Println(err)

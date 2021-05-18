@@ -9,6 +9,7 @@ option go_package = "proto/catalog";
 service CatalogService{
 	rpc CreateProduct(Product) returns (CreateProductResponse){}
 	rpc EditProduct(Product) returns (EditProductResponse){}
+	rpc Unavailable(Product) returns (EditProductResponse){}
 	rpc CreateOffer(CreateOfferRequest) returns (CreateOfferResponse){}
 	rpc EditOffer(Offer) returns (EditOfferResponse){}
 	rpc GetProducts(GetRequest) returns (GetProductsResponse){}
