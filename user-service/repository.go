@@ -16,6 +16,7 @@ type Repository interface {
 	Edit(user *pb.User) error
 	ChangePassword(user *pb.User) error
 	Follow(req *pb.Follower) error
+	Rate(req *pb.Rating) error
 	IsFollowing(req *pb.Follower) (bool, error)
 	GetFollowing(follower_id string) ([]*pb.User, error)
 	GetByEmail(email string) (*pb.User, error)
@@ -115,6 +116,23 @@ func (repo *UserRepository) Follow(follower *pb.Follower) error {
 	return nil
 }
 
+func (repo *UserRepository) Rate(rating *pb.Rating) error {
+	user, getErr := repo.Get(rating.UserId)
+	if getErr != nil {
+		return getErr
+	}
+	rating.Id = uuid.NewV4().String()
+	if err := repo.db.Create(rating).Error; err != nil {
+		return err
+	}
+	user.RatingCount = user.RatingCount + 1
+	user.Rating = ((user.Rating * (float32(user.RatingCount) - float32(1))) + rating.Rate) / float32(user.RatingCount)
+	if editErr := repo.db.Model(&user).Updates(map[string]interface{}{"rating_count": user.RatingCount, "rating": user.Rating}).Error; editErr != nil {
+		return editErr
+	}
+	return nil
+}
+
 func (repo *UserRepository) IsFollowing(follower *pb.Follower) (bool, error) {
 	var count int64
 	repo.db.Table("followers").Where("follower_id = ? AND user_id = ?", follower.FollowerId, follower.UserId).Count(&count)
@@ -127,9 +145,6 @@ func (repo *UserRepository) IsFollowing(follower *pb.Follower) (bool, error) {
 
 func (repo *UserRepository) GetFollowing(follower_id string) ([]*pb.User, error) {
 	var users []*pb.User
-	err := repo.db.Table("users").Select("users.id").Joins("LEFT JOIN followers ON followers.user_id = users.id AND followers.follower_id = '"+follower_id+"'").Scan(&users).Error
-	if err != nil {
-		return nil, err
-	}
+	repo.db.Table("followers").Select("users.id").Joins("left join users on followers.user_id = users.id").Where("followers.follower_id = ?", follower_id).Scan(&users)
 	return users, nil
 }

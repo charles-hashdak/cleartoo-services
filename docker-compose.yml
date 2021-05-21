@@ -84,6 +84,8 @@ services:
       EMAIL_PASSWORD: "QZyPXnA9"
     depends_on:
       - database
+    volumes:
+      - ./user-service/emails:/var/templates/emails
 
 
   database:

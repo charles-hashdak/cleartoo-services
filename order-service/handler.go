@@ -43,7 +43,7 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 		return err
 	}
 
-	for item := range req.Order.Products {
+	for _, item := range req.Order.Products {
 		_, err = s.catalogClient.Unavailable(ctx, &catalogPb.Product{
 			Id: item.Id,
 		})

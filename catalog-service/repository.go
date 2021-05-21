@@ -7,6 +7,7 @@ import(
 	"time"
 	"strings"
 	"strconv"
+	_ "fmt"
 
 	pb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
 	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
