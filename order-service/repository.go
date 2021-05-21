@@ -834,15 +834,21 @@ func (repo *MongoRepository) GetThaiPostStatus(ctx context.Context, req *UpdateO
 		return false, errors.New(fmt.Sprintf("pthai post body lecture failed... %v", err2))
 	}
 	var result map[string]interface{}
-	fmt.Println(string(data))
 	json.Unmarshal([]byte(string(data)), &result)
 	status, _ := json.Marshal(result["status"])
-	// status := result["status"].(map[string]interface{})
-	// if status["status"] != true {
-	// 	return "", errors.New(fmt.Sprintf("thai post response incorrect... %v", err2))
-	// }
+	if string(status) == "true" {
+		response, _ := json.Marshal(result["response"])
+		var responseResult map[string]interface{}
+		json.Unmarshal([]byte(string(response)), &responseResult)
+		items, _ := json.Marshal(responseResult["items"])
+		var itemsResult map[string]interface{}
+		json.Unmarshal([]byte(string(items)), &itemsResult)
+		item, _ := json.Marshal(itemsResult[req.TrackID])
+		if string(item) == "[]" {
+			return false, errors.New(fmt.Sprintf("no package found..."))
+		}
+		return true, nil
+	}
 	resp.Body.Close()
-	fmt.Println(string(status))
-	rslt, _ := strconv.ParseBool(string(status))
-	return rslt, nil
+	return false, nil
 }

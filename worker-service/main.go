@@ -20,13 +20,12 @@ func main(){
 
 	orderClient := orderPb.NewOrderService("cleartoo.order", service.Client())
 
+	for true {
+        checkInTransit(orderClient)
+        time.Sleep(time.Second*10)
+    }
+
 	if err := service.Run(); err != nil{
 		fmt.Println(err)
 	}
-
-	for true {
-        fmt.Println("Infinite Loop 2")
-        //checkInTransit(orderClient)
-        time.Sleep(time.Second*10)
-    }
 }

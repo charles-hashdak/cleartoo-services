@@ -25,6 +25,7 @@ const schema = `
 		age int,
 		fb_token varchar(225),
 		push_token varchar(225),
+		rating_count int,
 		primary key (id)
 	);
 
@@ -39,6 +40,7 @@ const schema = `
 		id varchar(36) not null,
 		rater_id varchar(36) not null,
 		user_id varchar(36) not null,
+		order_id varchar(36) not null unique,
 		rate float(8) not null,
 		primary key (id)
 	);

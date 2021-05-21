@@ -16,6 +16,7 @@ service UserService {
     rpc ValidateToken(Token) returns (Token) {}
     rpc Follow(Follower) returns (FollowResponse) {}
     rpc IsFollowing(Follower) returns (IsFollowingResponse) {}
+    rpc Rate(Rating) returns (RateResponse) {}
 }
 
 message User {
@@ -34,6 +35,7 @@ message User {
     int32 age = 13;
     string fb_token = 14;
     string push_token = 15;
+    int32 rating_count = 16;
 }
 
 message Follower {
@@ -46,7 +48,8 @@ message Rating {
     string id = 1;
     string rater_id = 2;
     string user_id = 3;
-    float rate = 4;
+    string order_id = 4;
+    float rate = 5;
 }
 
 message Notification {
@@ -72,6 +75,10 @@ message FollowRequest {
 
 message FollowResponse {
     bool followed = 1;
+}
+
+message RateResponse {
+    bool rated = 1;
 }
 
 message IsFollowingResponse {

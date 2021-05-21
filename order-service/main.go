@@ -38,7 +38,7 @@ func main(){
 
 	repository := &MongoRepository{orderCollection, walletCollection, transactionCollection}
 
-	catalogClient := catalogPb.NewCartService("cleartoo.catalog", service.Client())
+	catalogClient := catalogPb.NewCatalogService("cleartoo.catalog", service.Client())
 	cartClient := cartPb.NewCartService("cleartoo.cart", service.Client())
 	userClient := userPb.NewUserService("cleartoo.user", service.Client())
 

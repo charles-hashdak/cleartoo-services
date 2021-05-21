@@ -6,10 +6,11 @@ import (
 	"errors"
 	"log"
 	"os"
-	_ "bytes"
-	_ "html/template"
+	"bytes"
+	"html/template"
 	"context"
 	"strings"
+	"io/ioutil"
 	"strconv"
 	"math/rand"
 	"sync"
@@ -57,6 +58,8 @@ func (srv *service) SendNotification(ctx context.Context, req *pb.Notification, 
 	if err != nil{
 		return err
 	}
+
+	fmt.Println(user.PushToken)
 
 	if(user.PushToken != ""){
 	    pushToken, err := expo.NewExponentPushToken(user.PushToken)
@@ -106,6 +109,15 @@ func (srv *service) Follow(ctx context.Context, follower *pb.Follower, res *pb.F
 		return err
 	}
 	res.Followed = true
+	return nil
+}
+
+func (srv *service) Rate(ctx context.Context, rating *pb.Rating, res *pb.RateResponse) error {
+	err := srv.repo.Rate(rating)
+	if err != nil {
+		return err
+	}
+	res.Rated = true
 	return nil
 }
 
@@ -323,33 +335,45 @@ func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Res
 	smtpPort := "25"
 
 	// Message.
-	message := []byte("From: Cleartoo <no_reply@cleartoo.co.th>\r\n" +
-		"To: "+req.Email+"\r\n" +
-		"Subject: Password reset!\r\n" +
-		"\r\n" +
-		"New password = "+plainPassword)
+	// message := []byte("From: Cleartoo <no_reply@cleartoo.co.th>\r\n" +
+	// 	"To: "+req.Email+"\r\n" +
+	// 	"Subject: Password reset!\r\n" +
+	// 	"\r\n" +
+	// 	"New password = "+plainPassword)
 
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)
 
-	// t, _ := template.ParseFiles("emails/password_recovery.html")
+	files, err := ioutil.ReadDir("./")
+    if err != nil {
+        log.Fatal(err)
+    }
+ 
+    for _, f := range files {
+            fmt.Println(f.Name())
+    }
 
-	// var body bytes.Buffer
+	t, err := template.ParseFiles("/var/templates/emails/password_recovery.html")
+	if err != nil {
+		return err
+	}
 
-	// headers := "MIME-version: 1.0;\nContent-Type: text/html;"
+	var body bytes.Buffer
 
-	// body.Write([]byte(fmt.Sprintf("From: Cleartoo <no_reply@cleartoo.co.th>\r\nTo: "+req.Email+"\r\nSubject: Password reset!\r\n%s\n\n", headers)))
+	headers := "MIME-version: 1.0;\nContent-Type: text/html;"
 
-	// t.Execute(&body, struct {
-	// 	Username 	string
-	// 	Password 	string
-	// }{
-	// 	Username: 	user.Username,
-	// 	Password:	plainPassword,
-	// })
+	body.Write([]byte(fmt.Sprintf("From: Cleartoo <no_reply@cleartoo.co.th>\r\nTo: "+req.Email+"\r\nSubject: Password reset!\r\n%s\n\n", headers)))
+
+	t.Execute(&body, struct {
+		Username 	string
+		Password 	string
+	}{
+		Username: 	user.Username,
+		Password:	plainPassword,
+	})
 
 	// Sending email.
-	mailErr := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
+	mailErr := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, body.Bytes())
 	if mailErr != nil {
 		return mailErr
 	}
