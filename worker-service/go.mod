@@ -8,7 +8,6 @@ replace (
 )
 
 require (
-	github.com/charles-hashdak/cleartoo-services/order-service v0.0.0-20210310052804-c83c37d687af
 	github.com/golang/protobuf v1.4.2
 	github.com/micro/go-micro/v2 v2.9.1
 	google.golang.org/grpc v1.30.0
