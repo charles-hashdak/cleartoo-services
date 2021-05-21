@@ -25,13 +25,30 @@ func checkInTransit(orderClient orderPb.OrderService) error {
 		statusCode, statusDescription, err := GetThaiPostStatus(order.TrackId)
 		if err != nil {
 			fmt.Println(err)
+			// return errors.New(fmt.Sprintf("status request failed... %v", err))
 		}
 		fmt.Println(statusCode)
+		if statusCode == "501" {
+			updateOrderStatusRes, err := orderClient.UpdateOrderStatus(context.Background(), &orderPb.UpdateOrderStatusRequest{
+				OrderId: order.Id,
+				Status: "delivered",
+			})
+			if err != nil || updateOrderStatusRes.Updated == false {
+				fmt.Println(err)
+				return errors.New(fmt.Sprintf("update status request failed... %v", err))
+			}
+		}else{
+			updateOrderShippingStatusRes, err := orderClient.UpdateOrderShippingStatus(context.Background(), &orderPb.UpdateOrderStatusRequest{
+				OrderId: order.Id,
+				Status: statusDescription,
+			})
+			if err != nil || updateOrderShippingStatusRes.Updated == false {
+				fmt.Println(err)
+				return errors.New(fmt.Sprintf("update shipping status request failed... %v", err))
+			}
+		}
 	}
 	return nil
-	// call to orderPb to fetch sent orders
-	// call to shippingPb for each orders to fetch thai post info
-	// for delivered, actualise shipping status and order status
 }
 
 func GetThaiPostToken() (string, error){
@@ -100,7 +117,7 @@ func GetThaiPostStatus(trackId string) (string, string, error){
 		json.Unmarshal([]byte(string(items)), &itemsResult)
 		item, _ := json.Marshal(itemsResult[trackId])
 		if string(item) == "[]" {
-			return "", "", errors.New(fmt.Sprintf("no package found..."))
+			return "", "", errors.New(fmt.Sprintf("no package found for id "+trackId+"..."))
 		}
 		var itemResult []interface{}
 		json.Unmarshal([]byte(string(item)), &itemResult)

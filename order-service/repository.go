@@ -42,8 +42,8 @@ type Order struct{
 	ShippingMethod 	string 				`json:"shipping_method"`
 	PaymentMethod 	string 				`json:"payment_method"`
 	Address 		Address 			`json:"address"`
-	TrackID 		string 				`json:"track_id"`
-	ShippingStatus	string 				`json:"shipping_status"`
+	TrackID 		string 				`json:"trackid"`
+	ShippingStatus	string 				`json:"shippingstatus"`
 }
 
 type Address struct{
