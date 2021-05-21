@@ -43,6 +43,7 @@ type Order struct{
 	PaymentMethod 	string 				`json:"payment_method"`
 	Address 		Address 			`json:"address"`
 	TrackID 		string 				`json:"track_id"`
+	ShippingStatus	string 				`json:"shipping_status"`
 }
 
 type Address struct{
@@ -428,6 +429,7 @@ func MarshalOrder(order *pb.Order) *Order{
 		PaymentMethod:	order.PaymentMethod,
 		Address:		*MarshalAddress(order.Address),
 		TrackID:		order.TrackId,
+		ShippingStatus:	order.ShippingStatus,
 	}
 }
 
@@ -444,7 +446,7 @@ func UnmarshalOrder(order *Order) *pb.Order{
 		ShippingMethod:	order.ShippingMethod,
 		PaymentMethod:	order.PaymentMethod,
 		Address:		UnmarshalAddress(&order.Address),
-		TrackId:		order.TrackID,
+		ShippingStatus:	order.ShippingStatus,
 	}
 }
 
@@ -544,6 +546,7 @@ type repository interface{
 	InitializeWallet(ctx context.Context, req *InitializeWalletRequest) error
 	UpdateWallet(ctx context.Context, req *UpdateWalletRequest) error
 	UpdateOrderStatus(ctx context.Context, req *UpdateOrderStatusRequest) (string, error)
+	UpdateOrderShippingStatus(ctx context.Context, req *UpdateOrderStatusRequest) (string, error)
 	CancelOrder(ctx context.Context, req *CancelOrderRequest) error
 	AddTransaction(ctx context.Context, req *AddTransactionRequest) error
 	GetThaiPostToken(ctx context.Context, req *UpdateOrderStatusRequest) (string, error)
@@ -758,7 +761,7 @@ func (repo *MongoRepository) UpdateOrderStatus(ctx context.Context, req *UpdateO
 		update := bson.M{
 		    "$set": bson.M{
 		      "status": req.Status,
-		      "track_id": req.TrackID,
+		      "trackid": req.TrackID,
 		    },
 	  	}
 		_, err = repo.orderCollection.UpdateOne(ctx, bson.M{"_id": orderId}, update)
@@ -772,6 +775,17 @@ func (repo *MongoRepository) UpdateOrderStatus(ctx context.Context, req *UpdateO
 		_, err := repo.orderCollection.UpdateOne(ctx, bson.M{"_id": orderId}, update)
 		return req.Status, err
 	}
+}
+
+func (repo *MongoRepository) UpdateOrderShippingStatus(ctx context.Context, req *UpdateOrderStatusRequest) (string, error){
+	orderId, _ := primitive.ObjectIDFromHex(req.OrderID)
+	update := bson.M{
+	    "$set": bson.M{
+	      "shippingstatus": req.Status,
+	    },
+  	}
+	_, err := repo.orderCollection.UpdateOne(ctx, bson.M{"_id": orderId}, update)
+	return req.Status, err
 }
 
 func (repo *MongoRepository) CancelOrder(ctx context.Context, req *CancelOrderRequest) error{

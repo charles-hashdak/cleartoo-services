@@ -22,8 +22,11 @@ func checkInTransit(orderClient orderPb.OrderService) error {
 	for _, order := range orders {
 		ord, _ := json.Marshal(order)
 		fmt.Println(string(ord))
-		// statusCode, err := GetThaiPostStatus(order.TrackId)
-		// fmt.Println(statusCode)
+		statusCode, statusDescription, err := GetThaiPostStatus(order.TrackId)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(statusCode)
 	}
 	return nil
 	// call to orderPb to fetch sent orders
@@ -47,7 +50,7 @@ func GetThaiPostToken() (string, error){
 	data, err2 := io.ReadAll(resp.Body)
 	if err2 != nil {
 		fmt.Println(err2)
-		return "", errors.New(fmt.Sprintf("pthai post body lecture failed... %v", err2))
+		return "", errors.New(fmt.Sprintf("thai post body lecture failed... %v", err2))
 	}
 	var result map[string]interface{}
 	json.Unmarshal([]byte(string(data)), &result)
@@ -62,7 +65,7 @@ type GetThaiPostStatusRequest struct {
 	Barcode  []string `json:"barcode"`
 }
 
-func GetThaiPostStatus(trackId string) (string, error){
+func GetThaiPostStatus(trackId string) (string, string, error){
 	hc := http.Client{}
 	// token := os.Getenv("THAI_POST_TOKEN")
 	form, _ := json.Marshal(GetThaiPostStatusRequest{
@@ -77,13 +80,13 @@ func GetThaiPostStatus(trackId string) (string, error){
 	resp, err := hc.Do(httpReq)
 	if err != nil {
 		fmt.Println(err)
-		return "", errors.New(fmt.Sprintf("thai post request failed... %v", err))
+		return "", "", errors.New(fmt.Sprintf("thai post request failed... %v", err))
 	}
 
 	data, err2 := io.ReadAll(resp.Body)
 	if err2 != nil {
 		fmt.Println(err2)
-		return "", errors.New(fmt.Sprintf("pthai post body lecture failed... %v", err2))
+		return "", "", errors.New(fmt.Sprintf("pthai post body lecture failed... %v", err2))
 	}
 	var result map[string]interface{}
 	json.Unmarshal([]byte(string(data)), &result)
@@ -97,16 +100,17 @@ func GetThaiPostStatus(trackId string) (string, error){
 		json.Unmarshal([]byte(string(items)), &itemsResult)
 		item, _ := json.Marshal(itemsResult[trackId])
 		if string(item) == "[]" {
-			return "", errors.New(fmt.Sprintf("no package found..."))
+			return "", "", errors.New(fmt.Sprintf("no package found..."))
 		}
 		var itemResult []interface{}
 		json.Unmarshal([]byte(string(item)), &itemResult)
 		lastStatus, _ := json.Marshal(itemResult[len(itemResult)-1])
 		var lastStatusResult map[string]interface{}
 		json.Unmarshal([]byte(string(lastStatus)), &lastStatusResult)
-		lastStatusCode, _ := json.Marshal(lastStatusResult["code"])
-		return string(lastStatusCode), nil
+		lastStatusCode, _ := json.Marshal(lastStatusResult["status"])
+		lastStatusDescription, _ := json.Marshal(lastStatusResult["status_description"])
+		return string(lastStatusCode), string(lastStatusDescription), nil
 	}
 	resp.Body.Close()
-	return "", nil
+	return "", "", nil
 }

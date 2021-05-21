@@ -44,6 +44,7 @@ func NewOrderServiceEndpoints() []*api.Endpoint {
 type OrderService interface {
 	Order(ctx context.Context, in *OrderRequest, opts ...client.CallOption) (*OrderResponse, error)
 	UpdateOrderStatus(ctx context.Context, in *UpdateOrderStatusRequest, opts ...client.CallOption) (*UpdateOrderStatusResponse, error)
+	UpdateOrderShippingStatus(ctx context.Context, in *UpdateOrderStatusRequest, opts ...client.CallOption) (*UpdateOrderStatusResponse, error)
 	CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...client.CallOption) (*CancelOrderResponse, error)
 	GetSales(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetResponse, error)
 	GetOrders(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetResponse, error)
@@ -79,6 +80,16 @@ func (c *orderService) Order(ctx context.Context, in *OrderRequest, opts ...clie
 
 func (c *orderService) UpdateOrderStatus(ctx context.Context, in *UpdateOrderStatusRequest, opts ...client.CallOption) (*UpdateOrderStatusResponse, error) {
 	req := c.c.NewRequest(c.name, "OrderService.UpdateOrderStatus", in)
+	out := new(UpdateOrderStatusResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *orderService) UpdateOrderShippingStatus(ctx context.Context, in *UpdateOrderStatusRequest, opts ...client.CallOption) (*UpdateOrderStatusResponse, error) {
+	req := c.c.NewRequest(c.name, "OrderService.UpdateOrderShippingStatus", in)
 	out := new(UpdateOrderStatusResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -182,6 +193,7 @@ func (c *orderService) GetInTransitOrders(ctx context.Context, in *GetRequest, o
 type OrderServiceHandler interface {
 	Order(context.Context, *OrderRequest, *OrderResponse) error
 	UpdateOrderStatus(context.Context, *UpdateOrderStatusRequest, *UpdateOrderStatusResponse) error
+	UpdateOrderShippingStatus(context.Context, *UpdateOrderStatusRequest, *UpdateOrderStatusResponse) error
 	CancelOrder(context.Context, *CancelOrderRequest, *CancelOrderResponse) error
 	GetSales(context.Context, *GetRequest, *GetResponse) error
 	GetOrders(context.Context, *GetRequest, *GetResponse) error
@@ -197,6 +209,7 @@ func RegisterOrderServiceHandler(s server.Server, hdlr OrderServiceHandler, opts
 	type orderService interface {
 		Order(ctx context.Context, in *OrderRequest, out *OrderResponse) error
 		UpdateOrderStatus(ctx context.Context, in *UpdateOrderStatusRequest, out *UpdateOrderStatusResponse) error
+		UpdateOrderShippingStatus(ctx context.Context, in *UpdateOrderStatusRequest, out *UpdateOrderStatusResponse) error
 		CancelOrder(ctx context.Context, in *CancelOrderRequest, out *CancelOrderResponse) error
 		GetSales(ctx context.Context, in *GetRequest, out *GetResponse) error
 		GetOrders(ctx context.Context, in *GetRequest, out *GetResponse) error
@@ -224,6 +237,10 @@ func (h *orderServiceHandler) Order(ctx context.Context, in *OrderRequest, out *
 
 func (h *orderServiceHandler) UpdateOrderStatus(ctx context.Context, in *UpdateOrderStatusRequest, out *UpdateOrderStatusResponse) error {
 	return h.OrderServiceHandler.UpdateOrderStatus(ctx, in, out)
+}
+
+func (h *orderServiceHandler) UpdateOrderShippingStatus(ctx context.Context, in *UpdateOrderStatusRequest, out *UpdateOrderStatusResponse) error {
+	return h.OrderServiceHandler.UpdateOrderShippingStatus(ctx, in, out)
 }
 
 func (h *orderServiceHandler) CancelOrder(ctx context.Context, in *CancelOrderRequest, out *CancelOrderResponse) error {

@@ -76,6 +76,16 @@ func (s *handler) UpdateOrderStatus(ctx context.Context, req *pb.UpdateOrderStat
 	return nil
 }
 
+func (s *handler) UpdateOrderShippingStatus(ctx context.Context, req *pb.UpdateOrderStatusRequest, res *pb.UpdateOrderStatusResponse) error {
+	status, err := s.repository.UpdateOrderShippingStatus(ctx, MarshalUpdateOrderStatusRequest(req))
+	if err != nil {
+		return err
+	}
+	res.Status = status
+	res.Updated = true
+	return nil
+}
+
 func (s *handler) CancelOrder(ctx context.Context, req *pb.CancelOrderRequest, res *pb.CancelOrderResponse) error {
 	s.updateOrderStatusMutex.Lock()
 	defer s.updateOrderStatusMutex.Unlock()

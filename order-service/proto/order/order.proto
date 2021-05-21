@@ -9,6 +9,7 @@ option go_package = "proto/order";
 service OrderService{
 	rpc Order(OrderRequest) returns (OrderResponse){}
 	rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse){}
+	rpc UpdateOrderShippingStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse){}
 	rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse){}
 	rpc GetSales(GetRequest) returns (GetResponse){}
 	rpc GetOrders(GetRequest) returns (GetResponse){}
@@ -33,6 +34,7 @@ message Order{
 	string payment_method = 10;
 	Address address = 11;
 	string track_id = 12;
+	string shipping_status = 13;
 }
 
 message Address{
