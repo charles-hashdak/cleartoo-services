@@ -446,6 +446,7 @@ func UnmarshalOrder(order *Order) *pb.Order{
 		ShippingMethod:	order.ShippingMethod,
 		PaymentMethod:	order.PaymentMethod,
 		Address:		UnmarshalAddress(&order.Address),
+		TrackId:		order.TrackID,
 		ShippingStatus:	order.ShippingStatus,
 	}
 }
