@@ -14,8 +14,10 @@ import (
 	"strconv"
 	"math/rand"
 	"sync"
+	uuid "github.com/satori/go.uuid"
 
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
+	orderPb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
 	micro "github.com/micro/go-micro/v2"
 	"github.com/oliveroneill/exponent-server-sdk-golang/sdk"
 	"google.golang.org/grpc"
@@ -36,6 +38,7 @@ type service struct {
 	tokenService 	Authable
 	Publisher    	micro.Publisher
 	globalMutex 	sync.Mutex
+	orderClient 	orderPb.OrderService
 }
 
 func (srv *service) Get(ctx context.Context, req *pb.User, res *pb.Response) error {
@@ -189,6 +192,11 @@ func (srv *service) Auth(ctx context.Context, req *pb.User, res *pb.Response) er
 func (srv *service) Create(ctx context.Context, req *pb.User, res *pb.Response) error {
 	srv.globalMutex.Lock()
 	defer srv.globalMutex.Unlock()
+	req.Id = uuid.NewV4().String()
+	req.Email = strings.ToLower(req.Email)
+	req.Username = strings.ToLower(req.Username)
+	// var usernameId = 1000 + rand.Intn(9999-1000)
+	// user.Username = strings.Split(user.Email, string('@'))[0] + strconv.Itoa(usernameId)
 	req.Rating = 0;
   	req.AvatarUrl= ""
   	req.CoverUrl= ""
@@ -213,6 +221,14 @@ func (srv *service) Create(ctx context.Context, req *pb.User, res *pb.Response) 
 	header := metadata.New(map[string]string{"Set-Cookie": "refresh-jwt="+refreshToken+"; Max-Age=5256000; SameSite=none"})
 	if err := grpc.SendHeader(ctx, header); err != nil {
 		return status.Errorf(codes.Internal, "unable to send 'Set-Cookie' header")
+	}
+
+	_, err = srv.orderClient.InitializeWallet(ctx, &orderPb.InitializeWalletRequest{
+		UserId: req.Id,
+	})
+
+	if err != nil{
+		return err
 	}
 
 	req.Password = "";

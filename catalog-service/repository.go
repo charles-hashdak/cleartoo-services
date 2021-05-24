@@ -837,10 +837,11 @@ func (repo *MongoRepository) CreateOffer(ctx context.Context, req *CreateOfferRe
 }
 
 func (repo *MongoRepository) EditOffer(ctx context.Context, offer *Offer) error{
+	offer.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
 	_, err := repo.productsCollection.UpdateOne(
 	    ctx,
 	    bson.M{"offers._id": offer.ID},
-	    bson.M{"$set": bson.M{"offers.$.status": offer.Status}},
+	    bson.M{"$set": bson.M{"offers.$.status": offer.Status, "offers.$.updated_at": offer.UpdatedAt}},
 	)
 	return err
 }

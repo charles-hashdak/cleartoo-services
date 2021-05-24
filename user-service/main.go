@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
+	orderPb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
 	"github.com/micro/go-micro/v2"
 )
 
@@ -83,8 +84,10 @@ func main() {
 
 	mutex := sync.Mutex{}
 
+	orderClient := orderPb.NewOrderService("cleartoo.order", srv.Client())
+
 	// Register handler
-	if err := pb.RegisterUserServiceHandler(srv.Server(), &service{repo, tokenService, publisher, mutex}); err != nil {
+	if err := pb.RegisterUserServiceHandler(srv.Server(), &service{repo, tokenService, publisher, mutex, orderClient}); err != nil {
 		log.Panic(err)
 	}
 

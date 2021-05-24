@@ -49,6 +49,8 @@ type OrderService interface {
 	GetSales(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetResponse, error)
 	GetOrders(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetResponse, error)
 	GetSingleOrder(ctx context.Context, in *GetSingleRequest, opts ...client.CallOption) (*GetSingleResponse, error)
+	CreateOffer(ctx context.Context, in *CreateOfferRequest, opts ...client.CallOption) (*CreateOfferResponse, error)
+	EditOffer(ctx context.Context, in *Offer, opts ...client.CallOption) (*EditOfferResponse, error)
 	GetWallet(ctx context.Context, in *GetWalletRequest, opts ...client.CallOption) (*GetWalletResponse, error)
 	InitializeWallet(ctx context.Context, in *InitializeWalletRequest, opts ...client.CallOption) (*InitializeWalletResponse, error)
 	UpdateWallet(ctx context.Context, in *UpdateWalletRequest, opts ...client.CallOption) (*UpdateWalletResponse, error)
@@ -138,6 +140,26 @@ func (c *orderService) GetSingleOrder(ctx context.Context, in *GetSingleRequest,
 	return out, nil
 }
 
+func (c *orderService) CreateOffer(ctx context.Context, in *CreateOfferRequest, opts ...client.CallOption) (*CreateOfferResponse, error) {
+	req := c.c.NewRequest(c.name, "OrderService.CreateOffer", in)
+	out := new(CreateOfferResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *orderService) EditOffer(ctx context.Context, in *Offer, opts ...client.CallOption) (*EditOfferResponse, error) {
+	req := c.c.NewRequest(c.name, "OrderService.EditOffer", in)
+	out := new(EditOfferResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *orderService) GetWallet(ctx context.Context, in *GetWalletRequest, opts ...client.CallOption) (*GetWalletResponse, error) {
 	req := c.c.NewRequest(c.name, "OrderService.GetWallet", in)
 	out := new(GetWalletResponse)
@@ -198,6 +220,8 @@ type OrderServiceHandler interface {
 	GetSales(context.Context, *GetRequest, *GetResponse) error
 	GetOrders(context.Context, *GetRequest, *GetResponse) error
 	GetSingleOrder(context.Context, *GetSingleRequest, *GetSingleResponse) error
+	CreateOffer(context.Context, *CreateOfferRequest, *CreateOfferResponse) error
+	EditOffer(context.Context, *Offer, *EditOfferResponse) error
 	GetWallet(context.Context, *GetWalletRequest, *GetWalletResponse) error
 	InitializeWallet(context.Context, *InitializeWalletRequest, *InitializeWalletResponse) error
 	UpdateWallet(context.Context, *UpdateWalletRequest, *UpdateWalletResponse) error
@@ -214,6 +238,8 @@ func RegisterOrderServiceHandler(s server.Server, hdlr OrderServiceHandler, opts
 		GetSales(ctx context.Context, in *GetRequest, out *GetResponse) error
 		GetOrders(ctx context.Context, in *GetRequest, out *GetResponse) error
 		GetSingleOrder(ctx context.Context, in *GetSingleRequest, out *GetSingleResponse) error
+		CreateOffer(ctx context.Context, in *CreateOfferRequest, out *CreateOfferResponse) error
+		EditOffer(ctx context.Context, in *Offer, out *EditOfferResponse) error
 		GetWallet(ctx context.Context, in *GetWalletRequest, out *GetWalletResponse) error
 		InitializeWallet(ctx context.Context, in *InitializeWalletRequest, out *InitializeWalletResponse) error
 		UpdateWallet(ctx context.Context, in *UpdateWalletRequest, out *UpdateWalletResponse) error
@@ -257,6 +283,14 @@ func (h *orderServiceHandler) GetOrders(ctx context.Context, in *GetRequest, out
 
 func (h *orderServiceHandler) GetSingleOrder(ctx context.Context, in *GetSingleRequest, out *GetSingleResponse) error {
 	return h.OrderServiceHandler.GetSingleOrder(ctx, in, out)
+}
+
+func (h *orderServiceHandler) CreateOffer(ctx context.Context, in *CreateOfferRequest, out *CreateOfferResponse) error {
+	return h.OrderServiceHandler.CreateOffer(ctx, in, out)
+}
+
+func (h *orderServiceHandler) EditOffer(ctx context.Context, in *Offer, out *EditOfferResponse) error {
+	return h.OrderServiceHandler.EditOffer(ctx, in, out)
 }
 
 func (h *orderServiceHandler) GetWallet(ctx context.Context, in *GetWalletRequest, out *GetWalletResponse) error {

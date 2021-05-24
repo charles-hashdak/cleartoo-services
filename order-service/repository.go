@@ -44,9 +44,28 @@ type Order struct{
 	Address 		Address 			`json:"address"`
 	TrackID 		string 				`json:"trackid"`
 	ShippingStatus	string 				`json:"shippingstatus"`
+	Offers 			Offers 				`json:"offers"`
+	CreatedAt 		string 				`json:"created_at"`
+	UpdatedAt 		string 				`json:"updated_at"`
+}
+
+type Offer struct{
+	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
+	Amount			int32 				`json:"amount"`
+	Status 			string 				`json:"status"`
+	CreatedAt 		string 				`json:"created_at"`
+	UpdatedAt 		string 				`json:"updated_at"`
+}
+
+type Offers []*Offer
+
+type CreateOfferRequest struct{
+	OrderID 		string
+	Offer 			Offer
 }
 
 type Address struct{
+	Title 			string 				`json:"title"`
 	Indications 	string 				`json:"indications"`
 	AddressLine1 	string 				`json:"address_line1"`
 	FirstName 		string 				`json:"first_name"`
@@ -68,13 +87,13 @@ type Card struct{
 type Wallet struct{
 	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
 	UserID 			string 				`json:"user_id"`
-	Balance 		int64 				`json:"balance"`
+	Balance 		float32 			`json:"balance"`
 }
 
 type Transaction struct{
 	ID 				primitive.ObjectID  `bson:"_id,omitempty"`
 	WalletID 		string 				`json:"wallet_id"`
-	Amount 			int64 				`json:"amount"`
+	Amount 			float32 			`json:"amount"`
 	Type 			string 				`json:"type"`
 	OrderID 		string 				`json:"order_id"`
 }
@@ -430,6 +449,9 @@ func MarshalOrder(order *pb.Order) *Order{
 		Address:		*MarshalAddress(order.Address),
 		TrackID:		order.TrackId,
 		ShippingStatus:	order.ShippingStatus,
+		Offers:			MarshalOffers(order.Offers),
+		CreatedAt:		order.CreatedAt,
+		UpdatedAt:		order.UpdatedAt,
 	}
 }
 
@@ -448,11 +470,65 @@ func UnmarshalOrder(order *Order) *pb.Order{
 		Address:		UnmarshalAddress(&order.Address),
 		TrackId:		order.TrackID,
 		ShippingStatus:	order.ShippingStatus,
+		Offers:			UnmarshalOffers(order.Offers),
+		CreatedAt:		order.CreatedAt,
+		UpdatedAt:		order.UpdatedAt,
+	}
+}
+
+func MarshalOffer(offer *pb.Offer) *Offer{
+	if(offer == nil){
+		return &Offer{}
+	}
+	objId, _ := primitive.ObjectIDFromHex(offer.Id)
+	return &Offer{
+		ID:				objId,
+		Amount:			offer.Amount,
+		Status:			offer.Status,
+		CreatedAt:		offer.CreatedAt,
+		UpdatedAt:		offer.UpdatedAt,
+	}
+}
+
+func MarshalOffers(offers []*pb.Offer) Offers {
+	collection := make(Offers, 0)
+	for _, offer := range offers {
+		collection = append(collection, MarshalOffer(offer))
+	}
+	return collection
+}
+
+func UnmarshalOffer(offer *Offer) *pb.Offer{
+	if(offer == nil){
+		return &pb.Offer{}
+	}
+	return &pb.Offer{
+		Id:				offer.ID.Hex(),
+		Amount:			offer.Amount,
+		Status:			offer.Status,
+		CreatedAt:		offer.CreatedAt,
+		UpdatedAt:		offer.UpdatedAt,
+	}
+}
+
+func UnmarshalOffers(offers Offers) []*pb.Offer {
+	collection := make([]*pb.Offer, 0)
+	for _, offer := range offers {
+		collection = append(collection, UnmarshalOffer(offer))
+	}
+	return collection
+}
+
+func MarshalCreateOfferRequest(req *pb.CreateOfferRequest) *CreateOfferRequest{
+	return &CreateOfferRequest{
+		OrderID: 		req.OrderId,
+		Offer: 			*MarshalOffer(req.Offer),
 	}
 }
 
 func MarshalAddress(address *pb.Address) *Address{
 	return &Address{
+		Title: 			address.Title,
 		Indications: 	address.Indications,
 		AddressLine1: 	address.AddressLine1,
 		FirstName: 		address.FirstName,
@@ -466,6 +542,7 @@ func MarshalAddress(address *pb.Address) *Address{
 
 func UnmarshalAddress(address *Address) *pb.Address{
 	return &pb.Address{
+		Title: 			address.Title,
 		Indications: 	address.Indications,
 		AddressLine1: 	address.AddressLine1,
 		FirstName: 		address.FirstName,
@@ -541,8 +618,11 @@ type repository interface{
 	Order(ctx context.Context, req *OrderRequest) error
 	GetSingleOrder(ctx context.Context, req *GetSingleRequest) (*Order, error)
 	GetOrders(ctx context.Context, req *GetRequest) ([]*Order, error)
+	GetOrder(ctx context.Context, orderId primitive.ObjectID) (*Order, error)
 	GetInTransitOrders(ctx context.Context, req *GetRequest) ([]*Order, error)
 	GetSales(ctx context.Context, req *GetRequest) ([]*Order, error)
+	CreateOffer(ctx context.Context, offer *CreateOfferRequest) error
+	EditOffer(ctx context.Context, offer *Offer) error
 	GetWallet(ctx context.Context, req *GetWalletRequest) (*Wallet, error)
 	InitializeWallet(ctx context.Context, req *InitializeWalletRequest) error
 	UpdateWallet(ctx context.Context, req *UpdateWalletRequest) error
@@ -591,7 +671,9 @@ type Fields struct {
 }
 
 func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error{
-	fmt.Println("ok")
+	req.Order.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
+	req.Order.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+	req.Order.ID = primitive.NewObjectID()
 	if req.Order.PaymentMethod == "card" {
 		hc := http.Client{}
 		form, _ := json.Marshal(CardRequest{
@@ -634,9 +716,6 @@ func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error
 			fmt.Println(err)
 			return errors.New(fmt.Sprintf("payment request failed... %v", err))
 		}
-		if err != nil {
-			fmt.Println(err)
-		}
 
 		data, err2 := io.ReadAll(resp.Body)
 		if err2 != nil {
@@ -644,7 +723,6 @@ func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error
 			return errors.New(fmt.Sprintf("payment body lecture failed... %v", err2))
 		}
 		var result map[string]interface{}
-		fmt.Println(string(data))
 		json.Unmarshal([]byte(string(data)), &result)
 		status := result["status"].(map[string]interface{})
 		if status["status"] != "SUCCESS" {
@@ -656,6 +734,35 @@ func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) error
 			// }
 		}
 		resp.Body.Close()
+	}else if req.Order.PaymentMethod == "wallet" {
+		wallet, err := repo.GetWallet(
+			ctx,
+			&GetWalletRequest{
+				UserID: req.Order.UserID,
+			},
+		)
+		if err != nil {
+			return errors.New(fmt.Sprintf("get wallet request failed... %v", err))
+		}
+		balance := wallet.Balance
+		if balance < req.Order.Total {
+			return errors.New(fmt.Sprintf("insuffisant balance..."))
+		}else{
+			err = repo.AddTransaction(
+				ctx,
+				&AddTransactionRequest{
+					Transaction: Transaction{
+						WalletID: wallet.ID.Hex(),
+						Amount: req.Order.Total,
+						Type: "payment",
+						OrderID: req.Order.ID.Hex(),
+					},
+				},
+			)
+			if err != nil {
+				return errors.New(fmt.Sprintf("add transaction request failed... %v", err))
+			}
+		}
 	}
 	_, err := repo.orderCollection.InsertOne(ctx, req.Order)
 	return err
@@ -679,6 +786,25 @@ func (repo *MongoRepository) GetOrders(ctx context.Context, req *GetRequest) ([]
 		orders = append(orders, order)
 	}
 	return orders, err
+}
+
+func (repo *MongoRepository) GetOrder(ctx context.Context, orderId primitive.ObjectID) (*Order, error){
+	bsonFilters := bson.D{}
+	bsonFilters = append(bsonFilters, bson.E{"_id", bson.D{bson.E{"$eq", orderId}}})
+	opts := options.Find().SetShowRecordID(true)
+	cur, err := repo.orderCollection.Find(ctx,  bsonFilters, opts)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	for cur.Next(ctx) {
+		var order *Order
+		if err := cur.Decode(&order); err != nil {
+			return nil, err
+		}
+		return order, nil
+	}
+	return nil, nil
 }
 
 func (repo *MongoRepository) GetInTransitOrders(ctx context.Context, req *GetRequest) ([]*Order, error){
@@ -721,12 +847,53 @@ func (repo *MongoRepository) GetSales(ctx context.Context, req *GetRequest) ([]*
 	return orders, err
 }
 
+func (repo *MongoRepository) CreateOffer(ctx context.Context, req *CreateOfferRequest) error{
+	req.Offer.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
+	req.Offer.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+	req.Offer.ID = primitive.NewObjectID()
+	req.Offer.Status = "pending"
+	orderId, _ := primitive.ObjectIDFromHex(req.OrderID)
+	order, err := repo.GetOrder(ctx, orderId)
+	if req.Offer.Amount > int32(order.SubTotal + order.ShippingFees) {
+		return errors.New(fmt.Sprintf("reimbursment amount can't exceed order subtotal and shipping fees..."))
+	}
+	_, err = repo.orderCollection.UpdateOne(
+	    ctx,
+	    bson.M{"_id": orderId},
+	    bson.D{
+	        {"$push", bson.D{{"offers", req.Offer}}},
+	    },
+	)
+	return err
+}
+
+func (repo *MongoRepository) EditOffer(ctx context.Context, offer *Offer) error{
+	offer.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+	_, err := repo.orderCollection.UpdateOne(
+	    ctx,
+	    bson.M{"offers._id": offer.ID},
+	    bson.M{"$set": bson.M{"offers.$.status": offer.Status, "offers.$.updated_at": offer.UpdatedAt}},
+	)
+	return err
+}
+
 func (repo *MongoRepository) GetWallet(ctx context.Context, req *GetWalletRequest) (*Wallet, error){
-	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"userid", bson.D{bson.E{"$eq", req.UserID}}})
-	var wallet *Wallet
-	err := repo.walletCollection.FindOne(ctx, bsonFilters, nil).Decode(&wallet)
-	return wallet, err
+	walletId, _ := primitive.ObjectIDFromHex(req.WalletID)
+	bsonFilters := bson.M{"$or": []bson.M{bson.M{"userid": req.UserID}, bson.M{"_id": walletId}}}
+	opts := options.Find().SetShowRecordID(true)
+	cur, err := repo.walletCollection.Find(ctx,  bsonFilters, opts)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	for cur.Next(ctx) {
+		var wallet *Wallet
+		if err := cur.Decode(&wallet); err != nil {
+			return nil, err
+		}
+		return wallet, nil
+	}
+	return nil, errors.New(fmt.Sprintf("no wallet found..."))
 }
 
 func (repo *MongoRepository) InitializeWallet(ctx context.Context, req *InitializeWalletRequest) error{
@@ -740,15 +907,60 @@ func (repo *MongoRepository) InitializeWallet(ctx context.Context, req *Initiali
 
 func (repo *MongoRepository) AddTransaction(ctx context.Context, req *AddTransactionRequest) error{
 	_, err := repo.transactionCollection.InsertOne(ctx, req.Transaction)
-	return err
+	if err != nil {
+		return errors.New(fmt.Sprintf("insert transaction failed... %v", err))
+	}
+	wallet, err := repo.GetWallet(
+		ctx,
+		&GetWalletRequest{
+			WalletID: req.Transaction.WalletID,
+		},
+	)
+	if err != nil {
+		return errors.New(fmt.Sprintf("get wallet request failed... %v", err))
+	}
+	if req.Transaction.Type == "payment" || req.Transaction.Type == "withdrawal" {
+		wallet.Balance = wallet.Balance - req.Transaction.Amount
+		err = repo.UpdateWallet(
+			ctx,
+			&UpdateWalletRequest{
+				Wallet: *wallet,
+			},
+		)
+		if err != nil {
+			return errors.New(fmt.Sprintf("update wallet request failed... %v", err))
+		}
+		if req.Transaction.Type == "withdrawal" {
+			//send mail
+		}
+	}
+	if req.Transaction.Type == "gain" {
+		wallet.Balance = wallet.Balance + req.Transaction.Amount
+		err = repo.UpdateWallet(
+			ctx,
+			&UpdateWalletRequest{
+				Wallet: *wallet,
+			},
+		)
+		if err != nil {
+			return errors.New(fmt.Sprintf("update wallet request failed... %v", err))
+		}
+	}
+	return nil
 }
 
 func (repo *MongoRepository) UpdateWallet(ctx context.Context, req *UpdateWalletRequest) error{
-	_, err := repo.walletCollection.UpdateOne(ctx,bson.M{"_id": req.Wallet.ID} , req.Wallet)
+	update := bson.M{
+	    "$set": bson.M{
+	      "balance": req.Wallet.Balance,
+	    },
+	  }
+	_, err := repo.walletCollection.UpdateOne(ctx, bson.M{"_id": req.Wallet.ID}, update)
 	return err
 }
 
 func (repo *MongoRepository) UpdateOrderStatus(ctx context.Context, req *UpdateOrderStatusRequest) (string, error){
+	updatedAt := time.Now().Format("2006-01-02 15:04:05")
 	orderId, _ := primitive.ObjectIDFromHex(req.OrderID)
 	if req.Status == "sent" {
 		status, err := repo.GetThaiPostStatus(ctx, req)
@@ -763,14 +975,58 @@ func (repo *MongoRepository) UpdateOrderStatus(ctx context.Context, req *UpdateO
 		    "$set": bson.M{
 		      "status": req.Status,
 		      "trackid": req.TrackID,
+		      "updated_at": updatedAt,
 		    },
 	  	}
 		_, err = repo.orderCollection.UpdateOne(ctx, bson.M{"_id": orderId}, update)
+		return req.Status, err
+	}else if req.Status == "finalised" {
+		update := bson.M{
+		    "$set": bson.M{
+		      "status": req.Status,
+		      "updated_at": updatedAt,
+		    },
+	  	}
+		_, err := repo.orderCollection.UpdateOne(ctx, bson.M{"_id": orderId}, update)
+		if err != nil {
+			return "", errors.New(fmt.Sprintf("update order status request failed... %v", err))
+		}
+		order, err := repo.GetOrder(
+			ctx,
+			orderId,
+		)
+		if err != nil {
+			return "", errors.New(fmt.Sprintf("get order request failed... %v", err))
+		}
+		wallet, err := repo.GetWallet(
+			ctx,
+			&GetWalletRequest{
+				UserID: order.Products[0].OwnerID,
+			},
+		)
+		if err != nil {
+			return "", errors.New(fmt.Sprintf("get wallet request failed... %v", err))
+		}
+		err = repo.AddTransaction(
+			ctx,
+			&AddTransactionRequest{
+				Transaction: Transaction{
+					WalletID: wallet.ID.Hex(),
+					Amount: order.SubTotal + order.ShippingFees,
+					Type: "gain",
+					OrderID: order.ID.Hex(),
+				},
+			},
+		)
+		if err != nil {
+			return "", errors.New(fmt.Sprintf("add transaction request failed... %v", err))
+		}
 		return req.Status, err
 	}else{
 		update := bson.M{
 		    "$set": bson.M{
 		      "status": req.Status,
+		      "updated_at": updatedAt,
 		    },
 	  	}
 		_, err := repo.orderCollection.UpdateOne(ctx, bson.M{"_id": orderId}, update)

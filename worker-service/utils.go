@@ -20,15 +20,12 @@ func checkInTransit(orderClient orderPb.OrderService) error {
 	}
 	orders := ordersRes.Orders
 	for _, order := range orders {
-		ord, _ := json.Marshal(order)
-		fmt.Println(string(ord))
 		statusCode, statusDescription, err := GetThaiPostStatus(order.TrackId)
 		if err != nil {
 			fmt.Println(err)
 			// return errors.New(fmt.Sprintf("status request failed... %v", err))
 		}
-		fmt.Println(statusCode)
-		if statusCode == "501" {
+		if statusCode == "\"501\"" {
 			updateOrderStatusRes, err := orderClient.UpdateOrderStatus(context.Background(), &orderPb.UpdateOrderStatusRequest{
 				OrderId: order.Id,
 				Status: "delivered",
