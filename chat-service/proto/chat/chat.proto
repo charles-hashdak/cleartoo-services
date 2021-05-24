@@ -19,6 +19,7 @@ message Chat{
 	string message = 4;
 	string send_at = 5;
 	Product product = 6;
+	Order order = 7;
 }
 
 message Conversation{
@@ -33,11 +34,26 @@ message Conversation{
 
 message Product{
 	string id = 1;
-	bool disponible = 2;
+	bool available = 2;
 	string title = 3;
 	int32 price = 4;
 	Photo photo = 5;
 	bool in_cart = 6;
+}
+
+message Order{
+	string id = 1;
+	string user_id = 2;
+	repeated Product products = 3;
+	float sub_total = 4;
+	float shipping_fees = 5;
+	float taxes = 6;
+	float total = 7;
+	string status = 8;
+	string shipping_method = 9;
+	string payment_method = 10;
+	string track_id = 11;
+	string shipping_status = 12;
 }
 
 message Photo{
@@ -60,6 +76,7 @@ message GetChatRequest{
 	string sender_id = 1;
 	string receiver_id = 2;
 	string product_id = 3;
+	string order_id = 4;
 }
 
 message GetChatResponse{

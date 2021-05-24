@@ -122,6 +122,15 @@ func (s *handler) GetProducts(ctx context.Context, req *pb.GetRequest, res *pb.G
 			return err2
 		}
 		product.InCart = inCartRes.In
+		userRes, err2 := s.userClient.Get(ctx, &userPb.User{
+			Id: product.Owner.OwnerID,
+		})
+		if err2 != nil {
+			return err2
+		}
+		product.Owner.Avatar.Url = userRes.User.AvatarUrl
+		product.Owner.Username = userRes.User.Username
+		product.Owner.Rating = fmt.Sprintf("%v", userRes.User.Rating)
 		if len(product.Offers) > 0 {
 			for _, offer := range product.Offers {
 				if offer.UserID == req.UserId && offer.Status == "accepted" {

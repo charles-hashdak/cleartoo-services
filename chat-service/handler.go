@@ -5,16 +5,20 @@ package main
 import(
 	"context"
 	"fmt"
+	"strconv"
+	"time"
 
 	pb "github.com/charles-hashdak/cleartoo-services/chat-service/proto/chat"
 	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	catalogPb "github.com/charles-hashdak/cleartoo-services/catalog-service/proto/catalog"
+	orderPb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
 )
 
 type handler struct{
 	repository
 	userClient userPb.UserService
 	catalogClient catalogPb.CatalogService
+	orderClient orderPb.OrderService
 }
 
 func (s *handler) Send(ctx context.Context, chat *pb.Chat, res *pb.SendResponse) error {
@@ -60,6 +64,7 @@ func (s *handler) GetConversations(ctx context.Context, req *pb.GetConversations
 	if err != nil {
 		return err
 	}
+	var convs []*Conversation
 	for _, conversation := range conversations {
 		fmt.Println(conversation.Product.ID.Hex())
 		var userId string
@@ -89,9 +94,39 @@ func (s *handler) GetConversations(ctx context.Context, req *pb.GetConversations
 		if err4 != nil {
 			return err4
 		}
+		if len(productsRes.Products) > 0 {
+			conversation.Product.InCart = productsRes.Products[0].InCart
+			if len(productsRes.Products[0].Offers) > 0 {
+				layout := "2006-01-02 15:04:05"
+				lastOfferUpdatedAt, _ := time.Parse(layout, productsRes.Products[0].Offers[len(productsRes.Products[0].Offers) - 1].UpdatedAt)
+				lastChatSendAt, _ := time.Parse(layout, conversation.SendAt)
+				if lastOfferUpdatedAt.After(lastChatSendAt) {
+					conversation.SendAt = productsRes.Products[0].Offers[len(productsRes.Products[0].Offers) - 1].UpdatedAt
+					conversation.LastChat = "฿"+strconv.Itoa(int(productsRes.Products[0].Offers[len(productsRes.Products[0].Offers) - 1].Amount))
+				}
+			}
+			convs = append(convs, conversation)
+		}
 
-		conversation.Product.InCart = productsRes.Products[0].InCart
+		orderRes, err4 := s.orderClient.GetSingleOrder(ctx, &orderPb.GetSingleRequest{
+			OrderId: conversation.Order.ID.Hex(),
+		})
+		if err4 != nil {
+			return err4
+		}
+		if orderRes.Order {
+			if len(orderRes.Order.Offers) > 0 {
+				layout := "2006-01-02 15:04:05"
+				lastOfferUpdatedAt, _ := time.Parse(layout, orderRes.Order.Offers[len(orderRes.Order.Offers) - 1].UpdatedAt)
+				lastChatSendAt, _ := time.Parse(layout, conversation.SendAt)
+				if lastOfferUpdatedAt.After(lastChatSendAt) {
+					conversation.SendAt = orderRes.Order.Offers[len(orderRes.Order.Offers) - 1].UpdatedAt
+					conversation.LastChat = "฿"+strconv.Itoa(int(orderRes.Order.Offers[len(orderRes.Order.Offers) - 1].Amount))
+				}
+			}
+			convs = append(convs, conversation)
+		}
 	}
-	res.Conversations = UnmarshalConversations(conversations)
+	res.Conversations = UnmarshalConversations(convs)
 	return nil
 }

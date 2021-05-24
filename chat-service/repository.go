@@ -22,6 +22,7 @@ type Chat struct{
 	Message 		string 				`json:"message"`
 	SendAt 			string 				`json:"send_at"`
 	Product 		Product 			`json:"product"`
+	Order 			Order 				`json:"order"`
 }
 
 type Chats []*Chat
@@ -40,11 +41,28 @@ type Conversations []*Conversation
 
 type Product struct{
 	ID 				primitive.ObjectID
-	Disponible 		bool
+	Available 		bool
 	Title 			string
 	Price 			int32
 	Photo 			Photo
 	InCart 			bool
+}
+
+type Products []*Product
+
+type Order struct{
+	ID 				primitive.ObjectID
+	UserID 			string 
+	Products 		Products	
+	SubTotal 		float32	
+	ShippingFees    float32	
+	Taxes 			float32
+	Total 			float32
+	Status 			string 
+	ShippingMethod 	string 
+	PaymentMethod 	string
+	TrackID 		string
+	ShippingStatus	string 
 }
 
 type Photo struct{
@@ -67,6 +85,7 @@ type GetChatRequest struct {
 	SenderID 		string
 	ReceiverID 		string
 	ProductID 		string
+	OrderID 		string
 }
 
 type GetChatResponse struct {
@@ -110,6 +129,7 @@ func MarshalGetChatRequest(req *pb.GetChatRequest) *GetChatRequest{
 		SenderID: 		req.SenderId,
 		ReceiverID: 	req.ReceiverId,
 		ProductID: 		req.ProductId,
+		OrderID: 		req.OrderId,
 	}
 }
 
@@ -118,6 +138,7 @@ func UnmarshalGetChatRequest(req *GetChatRequest) *pb.GetChatRequest{
 		SenderId: 		req.SenderID,
 		ReceiverId: 	req.ReceiverID,
 		ProductId: 		req.ProductID,
+		OrderId: 		req.OrderID,
 	}
 }
 
@@ -161,7 +182,7 @@ func MarshalProduct(product *pb.Product) *Product{
 	objId, _ := primitive.ObjectIDFromHex(product.Id)
 	return &Product{
 		ID:				objId,
-		Disponible:		product.Disponible,
+		Available:		product.Available,
 		Title:			product.Title,
 		Price:			product.Price,
 		Photo:			*MarshalPhoto(product.Photo),
@@ -171,11 +192,62 @@ func MarshalProduct(product *pb.Product) *Product{
 func UnmarshalProduct(product *Product) *pb.Product{
 	return &pb.Product{
 		Id:				product.ID.Hex(),
-		Disponible:		product.Disponible,
+		Available:		product.Available,
 		Title:			product.Title,
 		Price:			product.Price,
 		Photo:			UnmarshalPhoto(&product.Photo),
 		InCart:			product.InCart,
+	}
+}
+
+func MarshalProducts(products []*pb.Product) Products {
+	collection := make(Products, 0)
+	for _, product := range products {
+		collection = append(collection, MarshalProduct(product))
+	}
+	return collection
+}
+
+func UnmarshalProducts(products Products) []*pb.Product {
+	collection := make([]*pb.Product, 0)
+	for _, product := range products {
+		collection = append(collection, UnmarshalProduct(product))
+	}
+	return collection
+}
+
+func MarshalOrder(order *pb.Order) *Order{
+	objId, _ := primitive.ObjectIDFromHex(order.Id)
+	return &Order{
+		ID:				objId,
+		UserID:			order.UserId,
+		Products:		MarshalProducts(order.Products),
+		SubTotal:		order.SubTotal,
+		ShippingFees:	order.ShippingFees,
+		Taxes:			order.Taxes,
+		Total:			order.Total,
+		Status:			order.Status,
+		ShippingMethod:	order.ShippingMethod,
+		PaymentMethod:	order.PaymentMethod,
+		TrackID:		order.TrackId,
+		ShippingStatus:	order.ShippingStatus,
+	}
+}
+
+func UnmarshalOrder(order *Order) *pb.Order{
+	return &pb.Order{
+		Id:				order.ID.Hex(),
+		UserId:			order.UserID,
+		Products:		UnmarshalProducts(order.Products),
+		SubTotal:		order.SubTotal,
+		ShippingFees:	order.ShippingFees,
+		Taxes:			order.Taxes,
+		Total:			order.Total,
+		Status:			order.Status,
+		ShippingMethod:	order.ShippingMethod,
+		PaymentMethod:	order.PaymentMethod,
+		TrackId:		order.TrackID,
+		ShippingStatus:	order.ShippingStatus,
 	}
 }
 
@@ -188,6 +260,7 @@ func MarshalChat(chat *pb.Chat) *Chat{
 		Message:		chat.Message,
 		SendAt:			chat.SendAt,
 		Product:		*MarshalProduct(chat.Product),
+		Order:			*MarshalOrder(chat.Order),
 	}
 }
 
@@ -199,6 +272,7 @@ func UnmarshalChat(chat *Chat) *pb.Chat{
 		Message:		chat.Message,
 		SendAt:			chat.SendAt,
 		Product:		UnmarshalProduct(&chat.Product),
+		Order:			UnmarshalOrder(&chat.Order),
 	}
 }
 
@@ -302,23 +376,44 @@ func (repo *MongoRepository) Send(ctx context.Context, chat *Chat) error{
 }
 
 func (repo *MongoRepository) GetChat(ctx context.Context, req *GetChatRequest) ([]*Chat, error){
-	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
-	matchStage := bson.D{
-		{"$match", bson.D{
-			{"$or", bson.A{
-				bson.D{
-					{"senderid", req.SenderID},
-					{"receiverid", req.ReceiverID},
-				}, 
-				bson.D{
-					{"receiverid", req.SenderID},
-					{"senderid", req.ReceiverID},
-				},
+	var matchStage bson.D
+	if req.ProductID != "" {
+		productId, _ := primitive.ObjectIDFromHex(req.ProductID)
+		matchStage = bson.D{
+			{"$match", bson.D{
+				{"$or", bson.A{
+					bson.D{
+						{"senderid", req.SenderID},
+						{"receiverid", req.ReceiverID},
+					}, 
+					bson.D{
+						{"receiverid", req.SenderID},
+						{"senderid", req.ReceiverID},
+					},
+				}},
+				{"product.id", productId},
 			}},
-			{"product.id", productId},
-		}},
+		}
 	}
-	projectStage := bson.D{{"$project", bson.D{{"message", "$message"}, {"receiverid", "$receiverid"}, {"senderid", "$senderid"}, {"sendat", "$sendat"}, {"product", "$product"}}}}
+	if req.OrderID != "" {
+		orderId, _ := primitive.ObjectIDFromHex(req.OrderID)
+		matchStage = bson.D{
+			{"$match", bson.D{
+				{"$or", bson.A{
+					bson.D{
+						{"senderid", req.SenderID},
+						{"receiverid", req.ReceiverID},
+					}, 
+					bson.D{
+						{"receiverid", req.SenderID},
+						{"senderid", req.ReceiverID},
+					},
+				}},
+				{"order.id", orderId},
+			}},
+		}
+	}
+	projectStage := bson.D{{"$project", bson.D{{"message", "$message"}, {"receiverid", "$receiverid"}, {"senderid", "$senderid"}, {"sendat", "$sendat"}, {"product", "$product"}, {"order", "$order"}}}}
 
 	cur, err := repo.chatCollection.Aggregate(ctx, mongo.Pipeline{matchStage, projectStage})
 	var chats []*Chat
@@ -334,7 +429,7 @@ func (repo *MongoRepository) GetChat(ctx context.Context, req *GetChatRequest) (
 
 func (repo *MongoRepository) GetConversations(ctx context.Context, req *GetConversationsRequest) ([]*Conversation, error){
 	matchStage := bson.D{{"$match", bson.D{{"$or", bson.A{bson.D{{"senderid", req.UserID}}, bson.D{{"receiverid", req.UserID}}}}}}}
-	groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"receiverid", "$receiverid"}, {"senderid", "$senderid"}, {"product", "$product"}}}, {"receiverid", bson.D{{"$last", "$receiverid"}}}, {"senderid", bson.D{{"$last", "$senderid"}}}, {"sendat", bson.D{{"$max", "$sendat"}}}, {"lastchat", bson.D{{"$last", "$message"}}}, {"product", bson.D{{"$last", "$product"}}}}}}
+	groupStage := bson.D{{"$group", bson.D{{"_id", bson.D{{"receiverid", "$receiverid"}, {"senderid", "$senderid"}, {"productid", "$product.id"}, {"orderid", "$order.id"}}}, {"receiverid", bson.D{{"$last", "$receiverid"}}}, {"senderid", bson.D{{"$last", "$senderid"}}}, {"sendat", bson.D{{"$max", "$sendat"}}}, {"lastchat", bson.D{{"$last", "$message"}}}, {"product", bson.D{{"$last", "$product"}}}, {"order", bson.D{{"$last", "$order"}}}}}}
 
 	cur, err := repo.chatCollection.Aggregate(ctx, mongo.Pipeline{matchStage, groupStage})
 	if err != nil {

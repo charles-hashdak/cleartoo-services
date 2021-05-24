@@ -133,6 +133,53 @@ func (s *handler) GetSingleOrder(ctx context.Context, req *pb.GetSingleRequest, 
 	return nil
 }
 
+func (s *handler) CreateOffer(ctx context.Context, req *pb.CreateOfferRequest, res *pb.CreateOfferResponse) error {
+
+	// Save our offer
+	if err := s.repository.CreateOffer(ctx, MarshalCreateOfferRequest(req)); err != nil {
+		return err
+	}
+
+	order, err4 := s.repository.GetSingleOrder(ctx, MarshalGetSingleRequest(&pb.GetSingleRequest{
+		OrderId: req.OrderId,
+	}))
+	if err4 != nil {
+		return err4
+	}
+
+	senderRes, err2 := s.userClient.Get(ctx, &userPb.User{
+		Id: order.UserID,
+	})
+	if err2 != nil {
+		return err2
+	}
+
+	_, err3 := s.userClient.SendNotification(ctx, &userPb.Notification{
+		UserId: order.Products[0].OwnerID,
+		Title: "New reimbursement request from "+senderRes.User.Username+"!",
+		Body: "",
+	})
+	if err3 != nil {
+		return err3
+	}
+
+	res.Created = true
+	res.Offer = req.Offer
+	return nil
+}
+
+func (s *handler) EditOffer(ctx context.Context, req *pb.Offer, res *pb.EditOfferResponse) error {
+
+	// Save our offer
+	if err := s.repository.EditOffer(ctx, MarshalOffer(req)); err != nil {
+		return err
+	}
+
+	res.Edited = true
+	res.Offer = req
+	return nil
+}
+
 func (s *handler) GetWallet(ctx context.Context, req *pb.GetWalletRequest, res *pb.GetWalletResponse) error {
 	wallet, err := s.repository.GetWallet(ctx, MarshalGetWalletRequest(req))
 	if err != nil {
