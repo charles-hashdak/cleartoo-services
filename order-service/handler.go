@@ -71,6 +71,22 @@ func (s *handler) UpdateOrderStatus(ctx context.Context, req *pb.UpdateOrderStat
 	if err != nil {
 		return err
 	}
+	if status == "canceled" {
+		order, err := s.repository.GetSingleOrder(ctx, MarshalGetSingleRequest(&pb.GetSingleRequest{
+			OrderId: req.OrderId,
+		}))
+		if err != nil {
+			return err
+		}
+		for _, product := range order.Products {
+			_, err = s.catalogClient.Available(ctx, &catalogPb.Product{
+				Id: product.Id,
+			})
+			if err != nil{
+				return err
+			}
+		}
+	}
 	res.Status = status
 	res.Updated = true
 	return nil
@@ -129,6 +145,7 @@ func (s *handler) GetSingleOrder(ctx context.Context, req *pb.GetSingleRequest, 
 	if err != nil {
 		return err
 	}
+	fmt.Println(order)
 	res.Order = UnmarshalOrder(order)
 	return nil
 }

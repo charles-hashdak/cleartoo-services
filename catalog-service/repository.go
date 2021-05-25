@@ -748,6 +748,7 @@ type repository interface{
 	CreateProduct(ctx context.Context, product *Product) error
 	EditProduct(ctx context.Context, product *Product) error
 	Unavailable(ctx context.Context, product *Product) error
+	Available(ctx context.Context, product *Product) error
 	CreateOffer(ctx context.Context, offer *CreateOfferRequest) error
 	EditOffer(ctx context.Context, offer *Offer) error
 	GetProducts(ctx context.Context, req *GetRequest, userClient userPb.UserService) ([]*Product, error)
@@ -814,6 +815,16 @@ func (repo *MongoRepository) Unavailable(ctx context.Context, product *Product) 
 	update := bson.M{
 	    "$set": bson.M{
 	      "available": false,
+	    },
+	  }
+	_, err := repo.productsCollection.UpdateOne(ctx, bson.M{"_id": product.ID}, update)
+	return err
+}
+
+func (repo *MongoRepository) Available(ctx context.Context, product *Product) error{
+	update := bson.M{
+	    "$set": bson.M{
+	      "available": true,
 	    },
 	  }
 	_, err := repo.productsCollection.UpdateOne(ctx, bson.M{"_id": product.ID}, update)
@@ -890,6 +901,8 @@ func (repo *MongoRepository) GetProducts(ctx context.Context, req *GetRequest, u
 				bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, true}}})
 			}else if(f.Value == "false"){
 				bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, false}}})
+			}else if(f.Condition == "$elemMatch"){
+				bsonFilters = append(bsonFilters, bson.E{strings.Split(f.Key, ".")[0], bson.D{{f.Condition, bson.D{{strings.Split(f.Key, ".")[1], f.Value}}}}})
 			}else{
 				bsonFilters = append(bsonFilters, bson.E{f.Key, bson.D{bson.E{f.Condition, f.Value}}})
 			}
