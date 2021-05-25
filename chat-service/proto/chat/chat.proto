@@ -30,6 +30,7 @@ message Conversation{
 	string last_chat = 5;
 	string send_at = 6;
 	Product product = 7;
+	Order order = 8;
 }
 
 message Product{

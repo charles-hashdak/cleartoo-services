@@ -641,12 +641,22 @@ type MongoRepository struct{
 }
 
 func (repo *MongoRepository) GetSingleOrder(ctx context.Context, req *GetSingleRequest) (*Order, error){
+	orderId, _ := primitive.ObjectIDFromHex(req.OrderID)
 	bsonFilters := bson.D{}
-	bsonFilters = append(bsonFilters, bson.E{"_id", bson.D{bson.E{"$eq", req.OrderID}}})
-	//bsonFilters = append(bsonFilters, bson.E{"available", bson.D{bson.E{"$eq", true}}})
-	var order *Order
-	err := repo.orderCollection.FindOne(ctx, bsonFilters, nil).Decode(&order)
-	return order, err
+	bsonFilters = append(bsonFilters, bson.E{"_id", bson.D{bson.E{"$eq", orderId}}})
+	opts := options.Find().SetShowRecordID(true)
+	cur, err := repo.orderCollection.Find(ctx,  bsonFilters, opts)
+	if err != nil {
+		return nil, err
+	}
+	for cur.Next(ctx) {
+		var order *Order
+		if err := cur.Decode(&order); err != nil {
+			return nil, err
+		}
+		return order, nil
+	}
+	return nil, nil
 }
 
 type CardRequest struct {
@@ -934,7 +944,7 @@ func (repo *MongoRepository) AddTransaction(ctx context.Context, req *AddTransac
 			//send mail
 		}
 	}
-	if req.Transaction.Type == "gain" {
+	if req.Transaction.Type == "gain" || req.Transaction.Type == "cancel" {
 		wallet.Balance = wallet.Balance + req.Transaction.Amount
 		err = repo.UpdateWallet(
 			ctx,
@@ -1014,6 +1024,48 @@ func (repo *MongoRepository) UpdateOrderStatus(ctx context.Context, req *UpdateO
 					WalletID: wallet.ID.Hex(),
 					Amount: order.SubTotal + order.ShippingFees,
 					Type: "gain",
+					OrderID: order.ID.Hex(),
+				},
+			},
+		)
+		if err != nil {
+			return "", errors.New(fmt.Sprintf("add transaction request failed... %v", err))
+		}
+		return req.Status, err
+	}else if req.Status == "canceled" {
+		update := bson.M{
+		    "$set": bson.M{
+		      "status": req.Status,
+		      "updated_at": updatedAt,
+		    },
+	  	}
+		_, err := repo.orderCollection.UpdateOne(ctx, bson.M{"_id": orderId}, update)
+		if err != nil {
+			return "", errors.New(fmt.Sprintf("update order status request failed... %v", err))
+		}
+		order, err := repo.GetOrder(
+			ctx,
+			orderId,
+		)
+		if err != nil {
+			return "", errors.New(fmt.Sprintf("get order request failed... %v", err))
+		}
+		wallet, err := repo.GetWallet(
+			ctx,
+			&GetWalletRequest{
+				UserID: order.UserID,
+			},
+		)
+		if err != nil {
+			return "", errors.New(fmt.Sprintf("get wallet request failed... %v", err))
+		}
+		err = repo.AddTransaction(
+			ctx,
+			&AddTransactionRequest{
+				Transaction: Transaction{
+					WalletID: wallet.ID.Hex(),
+					Amount: order.Total,
+					Type: "cancel",
 					OrderID: order.ID.Hex(),
 				},
 			},

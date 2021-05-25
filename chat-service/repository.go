@@ -35,6 +35,7 @@ type Conversation struct{
 	LastChat		string
 	SendAt			string
 	Product 		Product
+	Order 			Order
 }
 
 type Conversations []*Conversation
@@ -301,6 +302,7 @@ func MarshalConversation(conversation *pb.Conversation) *Conversation{
 		LastChat:		conversation.LastChat,
 		SendAt:			conversation.SendAt,
 		Product:		*MarshalProduct(conversation.Product),
+		Order:			*MarshalOrder(conversation.Order),
 	}
 }
 
@@ -313,6 +315,7 @@ func UnmarshalConversation(conversation *Conversation) *pb.Conversation{
 		LastChat:		conversation.LastChat,
 		SendAt:			conversation.SendAt,
 		Product:		UnmarshalProduct(&conversation.Product),
+		Order:			UnmarshalOrder(&conversation.Order),
 	}
 }
 

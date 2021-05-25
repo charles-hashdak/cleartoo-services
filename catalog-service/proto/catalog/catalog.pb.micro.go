@@ -45,6 +45,7 @@ type CatalogService interface {
 	CreateProduct(ctx context.Context, in *Product, opts ...client.CallOption) (*CreateProductResponse, error)
 	EditProduct(ctx context.Context, in *Product, opts ...client.CallOption) (*EditProductResponse, error)
 	Unavailable(ctx context.Context, in *Product, opts ...client.CallOption) (*EditProductResponse, error)
+	Available(ctx context.Context, in *Product, opts ...client.CallOption) (*EditProductResponse, error)
 	CreateOffer(ctx context.Context, in *CreateOfferRequest, opts ...client.CallOption) (*CreateOfferResponse, error)
 	EditOffer(ctx context.Context, in *Offer, opts ...client.CallOption) (*EditOfferResponse, error)
 	GetProducts(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetProductsResponse, error)
@@ -94,6 +95,16 @@ func (c *catalogService) EditProduct(ctx context.Context, in *Product, opts ...c
 
 func (c *catalogService) Unavailable(ctx context.Context, in *Product, opts ...client.CallOption) (*EditProductResponse, error) {
 	req := c.c.NewRequest(c.name, "CatalogService.Unavailable", in)
+	out := new(EditProductResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogService) Available(ctx context.Context, in *Product, opts ...client.CallOption) (*EditProductResponse, error) {
+	req := c.c.NewRequest(c.name, "CatalogService.Available", in)
 	out := new(EditProductResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -238,6 +249,7 @@ type CatalogServiceHandler interface {
 	CreateProduct(context.Context, *Product, *CreateProductResponse) error
 	EditProduct(context.Context, *Product, *EditProductResponse) error
 	Unavailable(context.Context, *Product, *EditProductResponse) error
+	Available(context.Context, *Product, *EditProductResponse) error
 	CreateOffer(context.Context, *CreateOfferRequest, *CreateOfferResponse) error
 	EditOffer(context.Context, *Offer, *EditOfferResponse) error
 	GetProducts(context.Context, *GetRequest, *GetProductsResponse) error
@@ -258,6 +270,7 @@ func RegisterCatalogServiceHandler(s server.Server, hdlr CatalogServiceHandler, 
 		CreateProduct(ctx context.Context, in *Product, out *CreateProductResponse) error
 		EditProduct(ctx context.Context, in *Product, out *EditProductResponse) error
 		Unavailable(ctx context.Context, in *Product, out *EditProductResponse) error
+		Available(ctx context.Context, in *Product, out *EditProductResponse) error
 		CreateOffer(ctx context.Context, in *CreateOfferRequest, out *CreateOfferResponse) error
 		EditOffer(ctx context.Context, in *Offer, out *EditOfferResponse) error
 		GetProducts(ctx context.Context, in *GetRequest, out *GetProductsResponse) error
@@ -293,6 +306,10 @@ func (h *catalogServiceHandler) EditProduct(ctx context.Context, in *Product, ou
 
 func (h *catalogServiceHandler) Unavailable(ctx context.Context, in *Product, out *EditProductResponse) error {
 	return h.CatalogServiceHandler.Unavailable(ctx, in, out)
+}
+
+func (h *catalogServiceHandler) Available(ctx context.Context, in *Product, out *EditProductResponse) error {
+	return h.CatalogServiceHandler.Available(ctx, in, out)
 }
 
 func (h *catalogServiceHandler) CreateOffer(ctx context.Context, in *CreateOfferRequest, out *CreateOfferResponse) error {

@@ -82,51 +82,112 @@ func (s *handler) GetConversations(ctx context.Context, req *pb.GetConversations
 		conversation.Avatar.Url = userRes.User.AvatarUrl
 		conversation.Username = userRes.User.Username
 
-		productsRes, err4 := s.catalogClient.GetProducts(ctx, &catalogPb.GetRequest{
-			UserId: userId,
-			Filters: []*catalogPb.Filter{{
-				Key: "_id",
-				Condition: "$eq",
-				Value: conversation.Product.ID.Hex(),
-				Hex: true,
-			}},
-		})
-		if err4 != nil {
-			return err4
-		}
-		if len(productsRes.Products) > 0 {
-			conversation.Product.InCart = productsRes.Products[0].InCart
-			if len(productsRes.Products[0].Offers) > 0 {
-				layout := "2006-01-02 15:04:05"
-				lastOfferUpdatedAt, _ := time.Parse(layout, productsRes.Products[0].Offers[len(productsRes.Products[0].Offers) - 1].UpdatedAt)
-				lastChatSendAt, _ := time.Parse(layout, conversation.SendAt)
-				if lastOfferUpdatedAt.After(lastChatSendAt) {
-					conversation.SendAt = productsRes.Products[0].Offers[len(productsRes.Products[0].Offers) - 1].UpdatedAt
-					conversation.LastChat = "฿"+strconv.Itoa(int(productsRes.Products[0].Offers[len(productsRes.Products[0].Offers) - 1].Amount))
-				}
+		if conversation.Product.ID.Hex() != "000000000000000000000000" {
+			productsRes, err4 := s.catalogClient.GetProducts(ctx, &catalogPb.GetRequest{
+				UserId: userId,
+				Filters: []*catalogPb.Filter{{
+					Key: "_id",
+					Condition: "$eq",
+					Value: conversation.Product.ID.Hex(),
+					Hex: true,
+				}},
+			})
+			if err4 != nil {
+				return err4
 			}
-			convs = append(convs, conversation)
+			if len(productsRes.Products) > 0 {
+				conversation.Product.InCart = productsRes.Products[0].InCart
+				if len(productsRes.Products[0].Offers) > 0 {
+					layout := "2006-01-02 15:04:05"
+					lastOfferUpdatedAt, _ := time.Parse(layout, productsRes.Products[0].Offers[len(productsRes.Products[0].Offers) - 1].UpdatedAt)
+					lastChatSendAt, _ := time.Parse(layout, conversation.SendAt)
+					if lastOfferUpdatedAt.After(lastChatSendAt) {
+						conversation.SendAt = productsRes.Products[0].Offers[len(productsRes.Products[0].Offers) - 1].UpdatedAt
+						conversation.LastChat = "฿"+strconv.Itoa(int(productsRes.Products[0].Offers[len(productsRes.Products[0].Offers) - 1].Amount))
+					}
+				}
+				convs = append(convs, conversation)
+			}
 		}
 
-		orderRes, err4 := s.orderClient.GetSingleOrder(ctx, &orderPb.GetSingleRequest{
-			OrderId: conversation.Order.ID.Hex(),
-		})
-		if err4 != nil {
-			return err4
-		}
-		if orderRes.Order {
-			if len(orderRes.Order.Offers) > 0 {
-				layout := "2006-01-02 15:04:05"
-				lastOfferUpdatedAt, _ := time.Parse(layout, orderRes.Order.Offers[len(orderRes.Order.Offers) - 1].UpdatedAt)
-				lastChatSendAt, _ := time.Parse(layout, conversation.SendAt)
-				if lastOfferUpdatedAt.After(lastChatSendAt) {
-					conversation.SendAt = orderRes.Order.Offers[len(orderRes.Order.Offers) - 1].UpdatedAt
-					conversation.LastChat = "฿"+strconv.Itoa(int(orderRes.Order.Offers[len(orderRes.Order.Offers) - 1].Amount))
+		if conversation.Order.ID.Hex() != "000000000000000000000000" {
+			orderRes, err4 := s.orderClient.GetSingleOrder(ctx, &orderPb.GetSingleRequest{
+				OrderId: conversation.Order.ID.Hex(),
+			})
+			if err4 != nil {
+				return err4
+			}
+			if orderRes.Order != nil {
+				if len(orderRes.Order.Offers) > 0 {
+					layout := "2006-01-02 15:04:05"
+					lastOfferUpdatedAt, _ := time.Parse(layout, orderRes.Order.Offers[len(orderRes.Order.Offers) - 1].UpdatedAt)
+					lastChatSendAt, _ := time.Parse(layout, conversation.SendAt)
+					if lastOfferUpdatedAt.After(lastChatSendAt) {
+						conversation.SendAt = orderRes.Order.Offers[len(orderRes.Order.Offers) - 1].UpdatedAt
+						conversation.LastChat = "฿"+strconv.Itoa(int(orderRes.Order.Offers[len(orderRes.Order.Offers) - 1].Amount))
+					}
 				}
+				convs = append(convs, conversation)
+			}
+		}
+	}
+	ownProductsRes, err := s.catalogClient.GetProducts(ctx, &catalogPb.GetRequest{
+		UserId: userId,
+		Filters: []*catalogPb.Filter{{
+			Key: "owner.ownerid",
+			Condition: "$eq",
+			Value: userId,
+		}},
+	})
+	if err != nil {
+		return err
+	}
+	for _, product := ownProductsRes.Products {
+		if len(product.Offers) > 0 {
+			for _, offer := range product.Offers {
+				if len(convs.filter(function(conv){ return conv.Product.ID.Hex() == product.Id && (conv.SenderID == offer.UserID || conv.ReceiverID == offer.UserID) })) == 0 {
+					conversation := &Conversation{
+						SenderID: offer.UserID,
+						ReceiverID: userId,
+						LastChat: "฿"+strconv.Itoa(int(offer.Amount)),
+						SendAt:	offer.UpdatedAt,
+						Product: product,
+					}
+					convs = append(convs, conversation)
+				}
+			}
+		}
+	}
+	offersProductsRes, err := s.catalogClient.GetProducts(ctx, &catalogPb.GetRequest{
+		UserId: userId,
+		Filters: []*catalogPb.Filter{{
+			Key: "offers.userid",
+			Condition: "$elemMatch",
+			Value: userId,
+		}},
+	})
+	if err != nil {
+		return err
+	}
+	for _, product := offersProductsRes.Products {
+		if len(convs.filter(function(conv){ return conv.Product.Id.Hex() == product.Id })) == 0 && len(product.Offers) > 0 {
+			offer := product.Offers[len(product.Offers) - 1]
+			conversation := &Conversation{
+				SenderID: userId,
+				ReceiverID: product.Owner.OwnerId,
+				LastChat: "฿"+strconv.Itoa(int(offer.Amount)),
+				SendAt:	offer.UpdatedAt,
+				Product: product,
 			}
 			convs = append(convs, conversation)
 		}
 	}
+	layout := "2006-01-02 15:04:05"
+	sort.SliceStable(convs, func(i, j int) bool {
+		prevSendAt, _ := time.Parse(layout, convs[i].SendAt)
+		nextSendAt, _ := time.Parse(layout, convs[j].SendAt)
+	    return prevSendAt.Before(nextSendAt)
+	})
 	res.Conversations = UnmarshalConversations(convs)
 	return nil
 }
