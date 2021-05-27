@@ -27,6 +27,7 @@ const schema = `
 		fb_token varchar(225),
 		push_token varchar(225),
 		rating_count int,
+		apple_user_id varchar(225),
 		primary key (id)
 	);
 

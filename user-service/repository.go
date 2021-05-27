@@ -20,6 +20,7 @@ type Repository interface {
 	IsFollowing(req *pb.Follower) (bool, error)
 	GetFollowing(follower_id string) ([]*pb.User, error)
 	GetByEmail(email string) (*pb.User, error)
+	GetByAppleUserId(apple_user_id string) (*pb.User, error)
 }
 
 type UserRepository struct {
@@ -46,6 +47,15 @@ func (repo *UserRepository) Get(id string) (*pb.User, error) {
 func (repo *UserRepository) GetByEmail(email string) (*pb.User, error) {
 	user := &pb.User{}
 	if err := repo.db.Where("email = ?", email).
+		First(&user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (repo *UserRepository) GetByAppleUserId(apple_user_id string) (*pb.User, error) {
+	user := &pb.User{}
+	if err := repo.db.Where("apple_user_id = ?", apple_user_id).
 		First(&user).Error; err != nil {
 		return nil, err
 	}

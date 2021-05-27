@@ -25,6 +25,14 @@ func checkInTransit(orderClient orderPb.OrderService) error {
 			fmt.Println(err)
 			// return errors.New(fmt.Sprintf("status request failed... %v", err))
 		}
+		updateOrderShippingStatusRes, err := orderClient.UpdateOrderShippingStatus(context.Background(), &orderPb.UpdateOrderStatusRequest{
+			OrderId: order.Id,
+			Status: statusDescription,
+		})
+		if err != nil || updateOrderShippingStatusRes.Updated == false {
+			fmt.Println(err)
+			return errors.New(fmt.Sprintf("update shipping status request failed... %v", err))
+		}
 		if statusCode == "\"501\"" {
 			updateOrderStatusRes, err := orderClient.UpdateOrderStatus(context.Background(), &orderPb.UpdateOrderStatusRequest{
 				OrderId: order.Id,
@@ -33,15 +41,6 @@ func checkInTransit(orderClient orderPb.OrderService) error {
 			if err != nil || updateOrderStatusRes.Updated == false {
 				fmt.Println(err)
 				return errors.New(fmt.Sprintf("update status request failed... %v", err))
-			}
-		}else{
-			updateOrderShippingStatusRes, err := orderClient.UpdateOrderShippingStatus(context.Background(), &orderPb.UpdateOrderStatusRequest{
-				OrderId: order.Id,
-				Status: statusDescription,
-			})
-			if err != nil || updateOrderShippingStatusRes.Updated == false {
-				fmt.Println(err)
-				return errors.New(fmt.Sprintf("update shipping status request failed... %v", err))
 			}
 		}
 	}
@@ -81,7 +80,7 @@ type GetThaiPostStatusRequest struct {
 
 func GetThaiPostStatus(trackId string) (string, string, error){
 	hc := http.Client{}
-	// token := os.Getenv("THAI_POST_TOKEN")
+	token, err := GetThaiPostToken()
 	form, _ := json.Marshal(GetThaiPostStatusRequest{
 		Status: "all",
 		Language: "EN",
@@ -89,7 +88,7 @@ func GetThaiPostStatus(trackId string) (string, string, error){
 	})
 	httpReq, err := http.NewRequest("POST", "https://trackapi.thailandpost.co.th/post/api/v1/track", bytes.NewBuffer(form))
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Token eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJzZWN1cmUtYXBpIiwiYXVkIjoic2VjdXJlLWFwcCIsInN1YiI6IkF1dGhvcml6YXRpb24iLCJleHAiOjE2MjM2OTM0MzAsInJvbCI6WyJST0xFX1VTRVIiXSwiZCpzaWciOnsicCI6InpXNzB4IiwicyI6bnVsbCwidSI6IjhmYWM3Yjc3MWZiYTFjYjQ2ZGFhZmQ2NDE4NDdkM2JhIiwiZiI6InhzeiM5In19.Ql6_iQo8EhAl3SCzNW6PAmpamNwTNgdFn_gppAFxZXiXQInvYnonsqLxnEr2gR5VtkXVRF7lyiPdOXlfpG-NfQ")
+	httpReq.Header.Set("Authorization", "Token "+token[1:len(token)-1])
 
 	resp, err := hc.Do(httpReq)
 	if err != nil {
@@ -123,7 +122,7 @@ func GetThaiPostStatus(trackId string) (string, string, error){
 		json.Unmarshal([]byte(string(lastStatus)), &lastStatusResult)
 		lastStatusCode, _ := json.Marshal(lastStatusResult["status"])
 		lastStatusDescription, _ := json.Marshal(lastStatusResult["status_description"])
-		return string(lastStatusCode), string(lastStatusDescription), nil
+		return string(lastStatusCode), string(lastStatusDescription)[1:len(string(lastStatusDescription))-1], nil
 	}
 	resp.Body.Close()
 	return "", "", nil

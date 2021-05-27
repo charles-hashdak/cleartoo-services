@@ -50,6 +50,7 @@ type OrderService interface {
 	GetOrders(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetResponse, error)
 	GetSingleOrder(ctx context.Context, in *GetSingleRequest, opts ...client.CallOption) (*GetSingleResponse, error)
 	CreateOffer(ctx context.Context, in *CreateOfferRequest, opts ...client.CallOption) (*CreateOfferResponse, error)
+	Withdraw(ctx context.Context, in *WithdrawRequest, opts ...client.CallOption) (*WithdrawResponse, error)
 	EditOffer(ctx context.Context, in *Offer, opts ...client.CallOption) (*EditOfferResponse, error)
 	GetWallet(ctx context.Context, in *GetWalletRequest, opts ...client.CallOption) (*GetWalletResponse, error)
 	InitializeWallet(ctx context.Context, in *InitializeWalletRequest, opts ...client.CallOption) (*InitializeWalletResponse, error)
@@ -150,6 +151,16 @@ func (c *orderService) CreateOffer(ctx context.Context, in *CreateOfferRequest, 
 	return out, nil
 }
 
+func (c *orderService) Withdraw(ctx context.Context, in *WithdrawRequest, opts ...client.CallOption) (*WithdrawResponse, error) {
+	req := c.c.NewRequest(c.name, "OrderService.Withdraw", in)
+	out := new(WithdrawResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *orderService) EditOffer(ctx context.Context, in *Offer, opts ...client.CallOption) (*EditOfferResponse, error) {
 	req := c.c.NewRequest(c.name, "OrderService.EditOffer", in)
 	out := new(EditOfferResponse)
@@ -221,6 +232,7 @@ type OrderServiceHandler interface {
 	GetOrders(context.Context, *GetRequest, *GetResponse) error
 	GetSingleOrder(context.Context, *GetSingleRequest, *GetSingleResponse) error
 	CreateOffer(context.Context, *CreateOfferRequest, *CreateOfferResponse) error
+	Withdraw(context.Context, *WithdrawRequest, *WithdrawResponse) error
 	EditOffer(context.Context, *Offer, *EditOfferResponse) error
 	GetWallet(context.Context, *GetWalletRequest, *GetWalletResponse) error
 	InitializeWallet(context.Context, *InitializeWalletRequest, *InitializeWalletResponse) error
@@ -239,6 +251,7 @@ func RegisterOrderServiceHandler(s server.Server, hdlr OrderServiceHandler, opts
 		GetOrders(ctx context.Context, in *GetRequest, out *GetResponse) error
 		GetSingleOrder(ctx context.Context, in *GetSingleRequest, out *GetSingleResponse) error
 		CreateOffer(ctx context.Context, in *CreateOfferRequest, out *CreateOfferResponse) error
+		Withdraw(ctx context.Context, in *WithdrawRequest, out *WithdrawResponse) error
 		EditOffer(ctx context.Context, in *Offer, out *EditOfferResponse) error
 		GetWallet(ctx context.Context, in *GetWalletRequest, out *GetWalletResponse) error
 		InitializeWallet(ctx context.Context, in *InitializeWalletRequest, out *InitializeWalletResponse) error
@@ -287,6 +300,10 @@ func (h *orderServiceHandler) GetSingleOrder(ctx context.Context, in *GetSingleR
 
 func (h *orderServiceHandler) CreateOffer(ctx context.Context, in *CreateOfferRequest, out *CreateOfferResponse) error {
 	return h.OrderServiceHandler.CreateOffer(ctx, in, out)
+}
+
+func (h *orderServiceHandler) Withdraw(ctx context.Context, in *WithdrawRequest, out *WithdrawResponse) error {
+	return h.OrderServiceHandler.Withdraw(ctx, in, out)
 }
 
 func (h *orderServiceHandler) EditOffer(ctx context.Context, in *Offer, out *EditOfferResponse) error {
