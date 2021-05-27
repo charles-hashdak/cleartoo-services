@@ -947,7 +947,7 @@ func (repo *MongoRepository) GetWishes(ctx context.Context, req *GetRequest) ([]
 	userId := req.UserID
 	bsonFilters := bson.D{}
 	bsonFilters = append(bsonFilters, bson.E{"wishers", bson.D{bson.E{"$elemMatch", bson.D{bson.E{"$eq", userId}}}}})
-	bsonFilters = append(bsonFilters, bson.E{"Available", bson.D{bson.E{"$eq", true}}})
+	bsonFilters = append(bsonFilters, bson.E{"available", bson.D{bson.E{"$eq", true}}})
 	opts := options.Find().SetShowRecordID(true)
 	cur, err := repo.productsCollection.Find(ctx, bsonFilters, opts)
 	var products []*Product

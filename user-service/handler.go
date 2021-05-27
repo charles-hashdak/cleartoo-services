@@ -12,6 +12,7 @@ import (
 	"strings"
 	"io/ioutil"
 	"strconv"
+	"math"
 	"math/rand"
 	"sync"
 	uuid "github.com/satori/go.uuid"
@@ -48,6 +49,7 @@ func (srv *service) Get(ctx context.Context, req *pb.User, res *pb.Response) err
 	if err != nil {
 		return err
 	}
+	user.Rating = float32(math.Round(float64(user.Rating*10))/10)
 	user.Password = "";
 	res.User = user
 	return nil
@@ -231,6 +233,53 @@ func (srv *service) Create(ctx context.Context, req *pb.User, res *pb.Response) 
 		return err
 	}
 
+	from := os.Getenv("EMAIL_USER")
+	password := os.Getenv("EMAIL_PASSWORD")
+
+	// Receiver email address.
+	to := []string{
+		req.Email,
+	}
+
+	// smtp server configuration.
+	smtpHost := "us2.smtp.mailhostbox.com"
+	smtpPort := "25"
+
+	// Authentication.
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	files, err := ioutil.ReadDir("./")
+    if err != nil {
+        log.Fatal(err)
+    }
+ 
+    for _, f := range files {
+            fmt.Println(f.Name())
+    }
+
+	t, err := template.ParseFiles("/var/templates/emails/welcome.html")
+	if err != nil {
+		return err
+	}
+
+	var body bytes.Buffer
+
+	headers := "MIME-version: 1.0;\nContent-Type: text/html;"
+
+	body.Write([]byte(fmt.Sprintf("From: Cleartoo <no_reply@cleartoo.co.th>\r\nTo: "+req.Email+"\r\nSubject: Welcome!\r\n%s\n\n", headers)))
+
+	t.Execute(&body, struct {
+		Username 	string
+	}{
+		Username: 	req.Username,
+	})
+
+	// Sending email.
+	mailErr := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, body.Bytes())
+	if mailErr != nil {
+		return mailErr
+	}
+
 	req.Password = "";
 	res.User = req
 	res.Token = &pb.Token{Token: token}
@@ -252,6 +301,57 @@ func (srv *service) FacebookLogin(ctx context.Context, req *pb.User, res *pb.Res
 	}
 	fmt.Println(user)
 	fmt.Println(req)
+	if(user.Email != req.Email){
+		var usernameId = 1000 + rand.Intn(9999-1000)
+		req.Username = strings.Split(user.Email, string('@'))[0] + strconv.Itoa(usernameId)
+      	req.Name= ""
+      	req.Company= ""
+      	req.Description= ""
+      	req.Rating= 0
+      	req.AvatarUrl= ""
+      	req.CoverUrl= ""
+      	req.FollowersCount= 0
+      	req.FollowingCount= 0
+		if err = srv.repo.Create(req); err != nil {
+			return errors.New(fmt.Sprintf("error creating user: %v", err))
+		}
+
+		token, refreshToken, err := srv.tokenService.Encode(req)
+		if err != nil {
+			return err
+		}
+		header := metadata.New(map[string]string{"Set-Cookie": "refresh-jwt="+refreshToken+"; Max-Age=5256000; SameSite=none"})
+		if err = grpc.SendHeader(ctx, header); err != nil {
+			return status.Errorf(codes.Internal, "unable to send 'Set-Cookie' header")
+		}
+
+		req.Password = "";
+		res.User = req
+		res.Token = &pb.Token{Token: token}
+	}else{
+		token, refreshToken, err := srv.tokenService.Encode(user)
+		if err != nil {
+			return err
+		}
+		header := metadata.New(map[string]string{"Set-Cookie": "refresh-jwt="+refreshToken+"; Max-Age=5256000; SameSite=none"})
+		if err = grpc.SendHeader(ctx, header); err != nil {
+			return status.Errorf(codes.Internal, "unable to send 'Set-Cookie' header")
+		}
+
+		req.Password = "";
+		res.User = user
+		res.Token = &pb.Token{Token: token}
+	}
+	return nil
+}
+
+func (srv *service) AppleLogin(ctx context.Context, req *pb.User, res *pb.Response) error {
+	srv.globalMutex.Lock()
+	defer srv.globalMutex.Unlock()
+	user, err := srv.repo.GetByAppleUserId(req.AppleUserId)
+	if err != nil {
+		return err
+	}
 	if(user.Email != req.Email){
 		var usernameId = 1000 + rand.Intn(9999-1000)
 		req.Username = strings.Split(user.Email, string('@'))[0] + strconv.Itoa(usernameId)
@@ -349,13 +449,6 @@ func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Res
 	// smtp server configuration.
 	smtpHost := "us2.smtp.mailhostbox.com"
 	smtpPort := "25"
-
-	// Message.
-	// message := []byte("From: Cleartoo <no_reply@cleartoo.co.th>\r\n" +
-	// 	"To: "+req.Email+"\r\n" +
-	// 	"Subject: Password reset!\r\n" +
-	// 	"\r\n" +
-	// 	"New password = "+plainPassword)
 
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)

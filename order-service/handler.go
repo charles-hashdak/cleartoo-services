@@ -6,6 +6,15 @@ import(
 	"context"
 	"fmt"
 	"sync"
+	"time"
+	"sort"
+  	"net/smtp"
+	"html/template"
+	"io/ioutil"
+	"log"
+	"os"
+	"bytes"
+	"strconv"
 
 	pb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
 	cartPb "github.com/charles-hashdak/cleartoo-services/cart-service/proto/cart"
@@ -25,8 +34,7 @@ type handler struct{
 func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.OrderResponse) error {
 	s.addOrderMutex.Lock()
 	defer s.addOrderMutex.Unlock()
-	fmt.Println(req)
-	err := s.repository.Order(ctx, MarshalOrderRequest(req))
+	orderId, err := s.repository.Order(ctx, MarshalOrderRequest(req))
 
 	if err != nil{
 		fmt.Println(err)
@@ -62,6 +70,76 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 	if err != nil{
 		return err
 	}
+
+	userRes, err := s.userClient.Get(ctx, &userPb.User{
+		Id: req.Order.UserId,
+	})
+	if err != nil {
+		return err
+	}
+
+	from := os.Getenv("EMAIL_USER")
+	password := os.Getenv("EMAIL_PASSWORD")
+
+	// Receiver email address.
+	to := []string{
+		userRes.User.Email,
+	}
+
+	// smtp server configuration.
+	smtpHost := "us2.smtp.mailhostbox.com"
+	smtpPort := "25"
+
+	// Authentication.
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	files, err := ioutil.ReadDir("./")
+    if err != nil {
+        log.Fatal(err)
+    }
+ 
+    for _, f := range files {
+            fmt.Println(f.Name())
+    }
+
+	t, err := template.ParseFiles("/var/templates/emails/order_confirmation.html")
+	if err != nil {
+		return err
+	}
+
+	var body bytes.Buffer
+
+	headers := "MIME-version: 1.0;\nContent-Type: text/html;"
+
+	body.Write([]byte(fmt.Sprintf("From: Cleartoo <no_reply@cleartoo.co.th>\r\nTo: "+userRes.User.Email+"\r\nSubject: Order received!\r\n%s\n\n", headers)))
+
+	t.Execute(&body, struct {
+		Username 		string
+		Date 			string
+		ShippingMethod 	string
+		PaymentMethod 	string
+		SubTotal 		string
+		ShippingFees 	string
+		Taxes 			string
+		Total 			string
+		OrderNumber		string
+	}{
+		Username: userRes.User.Username,
+		Date: time.Now().Format("2006-01-02 15:04:05"),
+		ShippingMethod: req.Order.ShippingMethod,
+		PaymentMethod: req.Order.PaymentMethod,
+		SubTotal: strconv.FormatFloat(float64(req.Order.SubTotal), 'f', -1, 32),
+		ShippingFees: strconv.FormatFloat(float64(req.Order.ShippingFees), 'f', -1, 32),
+		Taxes: strconv.FormatFloat(float64(req.Order.Taxes), 'f', -1, 32),
+		Total: strconv.FormatFloat(float64(req.Order.Total), 'f', -1, 32),
+		OrderNumber: orderId[len(orderId)-4:],
+	})
+
+	// Sending email.
+	mailErr := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, body.Bytes())
+	if mailErr != nil {
+		return mailErr
+	}
 	
 	return nil
 }
@@ -80,7 +158,7 @@ func (s *handler) UpdateOrderStatus(ctx context.Context, req *pb.UpdateOrderStat
 		}
 		for _, product := range order.Products {
 			_, err = s.catalogClient.Available(ctx, &catalogPb.Product{
-				Id: product.Id,
+				Id: product.ID.Hex(),
 			})
 			if err != nil{
 				return err
@@ -118,6 +196,12 @@ func (s *handler) GetOrders(ctx context.Context, req *pb.GetRequest, res *pb.Get
 	if err != nil {
 		return err
 	}
+	layout := "2006-01-02 15:04:05"
+	sort.Slice(orders, func(i, j int) bool {
+		prevUpdatedAt, _ := time.Parse(layout, orders[i].UpdatedAt)
+		nextUpdatedAt, _ := time.Parse(layout, orders[j].UpdatedAt)
+	    return prevUpdatedAt.After(nextUpdatedAt)
+	})
 	res.Orders = UnmarshalOrderCollection(orders)
 	return nil
 }
@@ -136,6 +220,12 @@ func (s *handler) GetSales(ctx context.Context, req *pb.GetRequest, res *pb.GetR
 	if err != nil {
 		return err
 	}
+	layout := "2006-01-02 15:04:05"
+	sort.Slice(orders, func(i, j int) bool {
+		prevUpdatedAt, _ := time.Parse(layout, orders[i].UpdatedAt)
+		nextUpdatedAt, _ := time.Parse(layout, orders[j].UpdatedAt)
+	    return prevUpdatedAt.After(nextUpdatedAt)
+	})
 	res.Orders = UnmarshalOrderCollection(orders)
 	return nil
 }
@@ -182,6 +272,77 @@ func (s *handler) CreateOffer(ctx context.Context, req *pb.CreateOfferRequest, r
 
 	res.Created = true
 	res.Offer = req.Offer
+	return nil
+}
+
+func (s *handler) Withdraw(ctx context.Context, req *pb.WithdrawRequest, res *pb.WithdrawResponse) error {
+
+	// Save our offer
+	if err := s.repository.Withdraw(ctx, MarshalWithdrawRequest(req)); err != nil {
+		return err
+	}
+
+	userRes, err := s.userClient.Get(ctx, &userPb.User{
+		Id: req.UserId,
+	})
+	if err != nil {
+		return err
+	}
+
+	from := os.Getenv("EMAIL_USER")
+	password := os.Getenv("EMAIL_PASSWORD")
+
+	// Receiver email address.
+	to := []string{
+		"admin@cleartooapp.com",
+	}
+
+	// smtp server configuration.
+	smtpHost := "us2.smtp.mailhostbox.com"
+	smtpPort := "25"
+
+	// Authentication.
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	files, err := ioutil.ReadDir("./")
+    if err != nil {
+        log.Fatal(err)
+    }
+ 
+    for _, f := range files {
+            fmt.Println(f.Name())
+    }
+
+	t, err := template.ParseFiles("/var/templates/emails/withdraw_request.html")
+	if err != nil {
+		return err
+	}
+
+	var body bytes.Buffer
+
+	headers := "MIME-version: 1.0;\nContent-Type: text/html;"
+
+	body.Write([]byte(fmt.Sprintf("From: Cleartoo <no_reply@cleartoo.co.th>\r\nTo: admin@cleartooapp.com\r\nSubject: Withdraw request!\r\n%s\n\n", headers)))
+
+	t.Execute(&body, struct {
+		Username 		string
+		Amount 			string
+		BankName 		string
+		BankAccount 	string
+	}{
+		Username: userRes.User.Username,
+		Amount: strconv.FormatFloat(float64(req.Amount), 'f', -1, 32),
+		BankAccount: req.BankAccount,
+		BankName: req.BankName,
+	})
+
+	// Sending email.
+	mailErr := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, body.Bytes())
+	if mailErr != nil {
+		return mailErr
+	}
+
+	res.Created = true
 	return nil
 }
 

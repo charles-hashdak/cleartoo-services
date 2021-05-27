@@ -38,6 +38,16 @@ func (s *handler) EditProduct(ctx context.Context, req *pb.Product, res *pb.Edit
 		return err
 	}
 
+	if req.Deleted == true {
+		_, err := s.cartClient.CleanCartsFromProduct(ctx, &cartPb.CleanCartsFromProductRequest{
+			ProductId: req.Id,
+		})
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+	}
+
 	res.Edited = true
 	res.Product = req
 	return nil
@@ -50,15 +60,22 @@ func (s *handler) Unavailable(ctx context.Context, req *pb.Product, res *pb.Edit
 		return err
 	}
 
+	_, err := s.cartClient.CleanCartsFromProduct(ctx, &cartPb.CleanCartsFromProductRequest{
+		ProductId: req.Id,
+	})
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
 	res.Edited = true
 	res.Product = req
 	return nil
 }
 
 func (s *handler) Available(ctx context.Context, req *pb.Product, res *pb.EditProductResponse) error {
-
 	// Save our product
-	if err := s.repository.Unavailable(ctx, MarshalProduct(req)); err != nil {
+	if err := s.repository.Available(ctx, MarshalProduct(req)); err != nil {
 		return err
 	}
 
@@ -144,11 +161,16 @@ func (s *handler) GetProducts(ctx context.Context, req *pb.GetRequest, res *pb.G
 		product.Owner.Username = userRes.User.Username
 		product.Owner.Rating = fmt.Sprintf("%v", userRes.User.Rating)
 		if len(product.Offers) > 0 {
+			var filteredOffers Offers
 			for _, offer := range product.Offers {
-				if offer.UserID == req.UserId && offer.Status == "accepted" {
-					product.Price = offer.Amount
+				if offer.UserID == req.UserId {
+					filteredOffers = append(filteredOffers, offer)
+					if offer.Status == "accepted" {
+						product.Price = offer.Amount
+					}
 				}
 			}
+			product.Offers = filteredOffers
 		}
 	}
 	res.Products = UnmarshalProductCollection(products, req.UserId)

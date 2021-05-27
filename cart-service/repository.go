@@ -89,6 +89,14 @@ type IsInCartResponse struct {
 	IsInCart 		bool
 }
 
+type CleanCartsFromProductRequest struct {
+	ProductID 		string
+}
+
+type CleanCartsFromProductResponse struct {
+	Cleaned 		bool
+}
+
 func MarshalAddToCartRequest(req *pb.AddToCartRequest) *AddToCartRequest{
 	return &AddToCartRequest{
 		UserID: 		req.UserId,
@@ -139,6 +147,18 @@ func MarshalIsInCartRequest(req *pb.IsInCartRequest) *IsInCartRequest{
 func UnmarshalIsInCartRequest(req *IsInCartRequest) *pb.IsInCartRequest{
 	return &pb.IsInCartRequest{
 		UserId: 		req.UserID,
+		ProductId: 		req.ProductID,
+	}
+}
+
+func MarshalCleanCartsFromProductRequest(req *pb.CleanCartsFromProductRequest) *CleanCartsFromProductRequest{
+	return &CleanCartsFromProductRequest{
+		ProductID: 		req.ProductId,
+	}
+}
+
+func UnmarshalCleanCartsFromProductRequest(req *CleanCartsFromProductRequest) *pb.CleanCartsFromProductRequest{
+	return &pb.CleanCartsFromProductRequest{
 		ProductId: 		req.ProductID,
 	}
 }
@@ -273,6 +293,7 @@ type repository interface{
 	DeleteFromCart(ctx context.Context, req *DeleteFromCartRequest) error
 	GetCart(ctx context.Context, req *GetRequest) (*Cart, error)
 	IsInCart(ctx context.Context, req *IsInCartRequest) (bool, error)
+	CleanCartsFromProduct(ctx context.Context, req *CleanCartsFromProductRequest) error
 	EmptyCart(ctx context.Context, req *GetRequest) error
 }
 
@@ -381,6 +402,32 @@ func (repo *MongoRepository) IsInCart(ctx context.Context, req *IsInCartRequest)
 		return true, nil
 	}
 	return false, nil
+}
+
+func (repo *MongoRepository) CleanCartsFromProduct(ctx context.Context, req *CleanCartsFromProductRequest) error{
+	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
+	bsonFilters := bson.D{
+		{"products", bson.D{
+			{"$elemMatch", bson.D{
+				{"id", productId},
+			}},
+		}},
+	}
+	_, err := repo.cartCollection.UpdateMany(
+	    ctx,
+	    bsonFilters,
+	    bson.D{
+	        {"$pull", bson.D{
+	        	{"products", bson.D{
+	        		{"id", productId},
+	        	}},
+	        }},
+	    },
+	)
+	if(err != nil){
+		return err
+	}
+	return nil
 }
 
 func (repo *MongoRepository) EmptyCart(ctx context.Context, req *GetRequest) error{

@@ -84,3 +84,15 @@ func (s *handler) IsInCart(ctx context.Context, req *pb.IsInCartRequest, res *pb
 
 	return nil
 }
+
+func (s *handler) CleanCartsFromProduct(ctx context.Context, req *pb.CleanCartsFromProductRequest, res *pb.CleanCartsFromProductResponse) error {
+	err := s.repository.CleanCartsFromProduct(ctx, MarshalCleanCartsFromProductRequest(req))
+
+	if err != nil{
+		return nil
+	}
+
+	res.Cleaned = true
+
+	return nil
+}

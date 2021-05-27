@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
+    <style type="text/css">
+    	@font-face {
+		  font-family: "Prompt";
+		  src: url("./assets/Prompt.ttf") format("ttf");
+		}
+    	@font-face {
+		  font-family: "Poppins";
+		  src: url("./assets/Poppins.ttf") format("ttf");
+		}
+		.items-container{
+
+		}
+		.item-container{
+
+		}
+		.item-image{
+
+		}
+		.item-details-container{
+
+		}
+		.item-title{
+
+		}
+		.item-feature{
+
+		}
+		.item-price{
+
+		}
+		.details-container{
+			width: 100%;
+			margin-top: 24px;
+		}
+		.details-titles{
+			width: 50%;
+			display: inline-block;
+		}
+		.detail-title{
+			font-weight: 700;
+		}
+		.details-values{
+			width: 50%;
+			display: inline-block;
+    		position: absolute;
+		}
+		.detail-value{
+
+		}
+    </style>
+</head>
+
+<body>
+	<p style="font-family: 'Prompt'; margin-top: 24px">
+	    <strong style="font-family: 'Prompt'; font-weight: 700; font-size: 24px">ขอบคุณ {{.Username}},</strong><br><br>
+	    คำสั่งซื้อของคุณได้รับการดำเนินการเรียบร้อยแล้วเมื่อ {{.Date}}, สินค้าของคุณจะถูกจัดส่งภายใน 3-5 วัน โดย {{.ShippingMethod}}.<br>
+	    คุณจะได้รับการยืนยันการจัดส่งและหมายเลขติดตามพัสดุเมื่อคำสั่งซื้อถูกส่งแล้ว<br><br>
+	</p>
+	<div class="items-container">
+		
+	</div>
+	<div class="details-container">
+		<div class="details-titles">
+			<div class="detail-title" style="font-family: 'Prompt'">รวมรายการสั่งซื้อ</div>
+			<div class="detail-title" style="font-family: 'Prompt'">ค่าจัดส่ง</div>
+			<div class="detail-title" style="font-family: 'Prompt'">ค่ารับประกันผู้ซื้อ</div>
+		</div>
+		<div class="details-values">
+			<div class="detail-value">฿{{.SubTotal}}</div>
+			<div class="detail-value">฿{{.ShippingFees}}</div>
+			<div class="detail-value">฿{{.Taxes}}</div>
+		</div>
+	</div>
+	<div class="details-container">
+		<div class="details-titles">
+			<div class="detail-title" style="font-family: 'Prompt'">ยอดชำระทั้งหมด</div>
+		</div>
+		<div class="details-values">
+			<div class="detail-value">฿{{.Total}}</div>
+		</div>
+	</div>
+	<div class="details-container">
+		<div class="details-titles">
+			<div class="detail-title" style="font-family: 'Prompt'">วิธีการชำระเงิน: {{.PaymentMethod}}</div>
+			<div class="detail-title" style="font-family: 'Prompt'">หมายเลขคำสั่งซื้อ {{.OrderNumber}}</div>
+		</div>
+		<div class="details-values">
+		</div>
+	</div>
+	<p style="font-family: 'Prompt'; margin-top: 24px">
+	    หากคุณมีคำถามอื่นใด สามารถติดต่อเราได้ทางอีเมล์ support@cleartooapp.com<br><br>
+	</p>
+	<p style="font-family: 'Prompt'">
+    	ขอขอบคุณ<br>
+		ทีมเคลียร์ตู้
+	</p>
+	<p style="font-family: 'Poppins'; margin-top: 40px">
+	    <strong style="font-family: 'Poppins'; font-weight: 700; font-size: 24px">Thank you {{.Username}},</strong><br><br>
+	    Your order has been successfully processed on {{.Date}}, and will be shipped within 3-5 days via {{.ShippingMethod}}.<br>
+	    You will receive a shipping confirmation with the tracking number once the order has been sent.<br><br>
+	</p>
+	<div class="items-container">
+		
+	</div>
+	<div class="details-container">
+		<div class="details-titles">
+			<div class="detail-title">Subtotal</div>
+			<div class="detail-title">Postage</div>
+			<div class="detail-title">Buyer Protection Fee</div>
+		</div>
+		<div class="details-values">
+			<div class="detail-value">฿{{.SubTotal}}</div>
+			<div class="detail-value">฿{{.ShippingFees}}</div>
+			<div class="detail-value">฿{{.Taxes}}</div>
+		</div>
+	</div>
+	<div class="details-container">
+		<div class="details-titles">
+			<div class="detail-title">Amount Paid</div>
+		</div>
+		<div class="details-values">
+			<div class="detail-value">฿{{.Total}}</div>
+		</div>
+	</div>
+	<div class="details-container">
+		<div class="details-titles">
+			<div class="detail-title">Payment method chosen: {{.PaymentMethod}}</div>
+			<div class="detail-title">Order n°{{.OrderNumber}}</div>
+		</div>
+		<div class="details-values">
+		</div>
+	</div>
+	<p style="font-family: 'Poppins'; margin-top: 24px">
+	    If you have any questions, feel free to contact us at any time via our email support@cleartooapp.com<br><br>
+	</p>
+	<p style="font-family: 'Poppins'">
+    	Thank you,<br>
+		Team Cleartoo
+	</p>
+	<img style="width: 128px; height: 128px" src="https://res.cloudinary.com/dedlqezmf/image/upload/v1621860738/logo_i1pfim.png">
+</body>
+
+</html>

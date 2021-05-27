@@ -44,6 +44,7 @@ func NewUserServiceEndpoints() []*api.Endpoint {
 type UserService interface {
 	Create(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	FacebookLogin(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
+	AppleLogin(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	Edit(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	ChangePassword(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
 	ResetPassword(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error)
@@ -55,6 +56,7 @@ type UserService interface {
 	ValidateToken(ctx context.Context, in *Token, opts ...client.CallOption) (*Token, error)
 	Follow(ctx context.Context, in *Follower, opts ...client.CallOption) (*FollowResponse, error)
 	IsFollowing(ctx context.Context, in *Follower, opts ...client.CallOption) (*IsFollowingResponse, error)
+	Rate(ctx context.Context, in *Rating, opts ...client.CallOption) (*RateResponse, error)
 }
 
 type userService struct {
@@ -81,6 +83,16 @@ func (c *userService) Create(ctx context.Context, in *User, opts ...client.CallO
 
 func (c *userService) FacebookLogin(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error) {
 	req := c.c.NewRequest(c.name, "UserService.FacebookLogin", in)
+	out := new(Response)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userService) AppleLogin(ctx context.Context, in *User, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "UserService.AppleLogin", in)
 	out := new(Response)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -199,11 +211,22 @@ func (c *userService) IsFollowing(ctx context.Context, in *Follower, opts ...cli
 	return out, nil
 }
 
+func (c *userService) Rate(ctx context.Context, in *Rating, opts ...client.CallOption) (*RateResponse, error) {
+	req := c.c.NewRequest(c.name, "UserService.Rate", in)
+	out := new(RateResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for UserService service
 
 type UserServiceHandler interface {
 	Create(context.Context, *User, *Response) error
 	FacebookLogin(context.Context, *User, *Response) error
+	AppleLogin(context.Context, *User, *Response) error
 	Edit(context.Context, *User, *Response) error
 	ChangePassword(context.Context, *User, *Response) error
 	ResetPassword(context.Context, *User, *Response) error
@@ -215,12 +238,14 @@ type UserServiceHandler interface {
 	ValidateToken(context.Context, *Token, *Token) error
 	Follow(context.Context, *Follower, *FollowResponse) error
 	IsFollowing(context.Context, *Follower, *IsFollowingResponse) error
+	Rate(context.Context, *Rating, *RateResponse) error
 }
 
 func RegisterUserServiceHandler(s server.Server, hdlr UserServiceHandler, opts ...server.HandlerOption) error {
 	type userService interface {
 		Create(ctx context.Context, in *User, out *Response) error
 		FacebookLogin(ctx context.Context, in *User, out *Response) error
+		AppleLogin(ctx context.Context, in *User, out *Response) error
 		Edit(ctx context.Context, in *User, out *Response) error
 		ChangePassword(ctx context.Context, in *User, out *Response) error
 		ResetPassword(ctx context.Context, in *User, out *Response) error
@@ -232,6 +257,7 @@ func RegisterUserServiceHandler(s server.Server, hdlr UserServiceHandler, opts .
 		ValidateToken(ctx context.Context, in *Token, out *Token) error
 		Follow(ctx context.Context, in *Follower, out *FollowResponse) error
 		IsFollowing(ctx context.Context, in *Follower, out *IsFollowingResponse) error
+		Rate(ctx context.Context, in *Rating, out *RateResponse) error
 	}
 	type UserService struct {
 		userService
@@ -250,6 +276,10 @@ func (h *userServiceHandler) Create(ctx context.Context, in *User, out *Response
 
 func (h *userServiceHandler) FacebookLogin(ctx context.Context, in *User, out *Response) error {
 	return h.UserServiceHandler.FacebookLogin(ctx, in, out)
+}
+
+func (h *userServiceHandler) AppleLogin(ctx context.Context, in *User, out *Response) error {
+	return h.UserServiceHandler.AppleLogin(ctx, in, out)
 }
 
 func (h *userServiceHandler) Edit(ctx context.Context, in *User, out *Response) error {
@@ -294,4 +324,8 @@ func (h *userServiceHandler) Follow(ctx context.Context, in *Follower, out *Foll
 
 func (h *userServiceHandler) IsFollowing(ctx context.Context, in *Follower, out *IsFollowingResponse) error {
 	return h.UserServiceHandler.IsFollowing(ctx, in, out)
+}
+
+func (h *userServiceHandler) Rate(ctx context.Context, in *Rating, out *RateResponse) error {
+	return h.UserServiceHandler.Rate(ctx, in, out)
 }

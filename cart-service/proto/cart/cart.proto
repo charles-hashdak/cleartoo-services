@@ -12,6 +12,7 @@ service CartService{
 	rpc DeleteFromCart(DeleteFromCartRequest) returns (DeleteFromCartResponse){}
 	rpc GetCart(GetRequest) returns (GetResponse){}
 	rpc IsInCart(IsInCartRequest) returns (IsInCartResponse){}
+	rpc CleanCartsFromProduct(CleanCartsFromProductRequest) returns (CleanCartsFromProductResponse){}
 	rpc EmptyCart(GetRequest) returns (DeleteFromCartResponse){}
 }
 
@@ -86,4 +87,12 @@ message IsInCartRequest{
 
 message IsInCartResponse{
 	bool in = 1;
+}
+
+message CleanCartsFromProductRequest{
+	string product_id = 1;
+}
+
+message CleanCartsFromProductResponse{
+	bool cleaned = 1;
 }

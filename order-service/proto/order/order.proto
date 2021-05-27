@@ -15,6 +15,7 @@ service OrderService{
 	rpc GetOrders(GetRequest) returns (GetResponse){}
 	rpc GetSingleOrder(GetSingleRequest) returns (GetSingleResponse){}
 	rpc CreateOffer(CreateOfferRequest) returns (CreateOfferResponse){}
+	rpc Withdraw(WithdrawRequest) returns (WithdrawResponse){}
 	rpc EditOffer(Offer) returns (EditOfferResponse){}
 	rpc GetWallet(GetWalletRequest) returns (GetWalletResponse){}
 	rpc InitializeWallet(InitializeWalletRequest) returns (InitializeWalletResponse){}
@@ -44,7 +45,7 @@ message Order{
 
 message Offer{
 	string id = 1;
-	int32 amount = 2;
+	float amount = 2;
 	string status = 3;
 	string created_at = 4;
 	string updated_at = 5;
@@ -164,6 +165,17 @@ message CreateOfferRequest{
 message CreateOfferResponse{
 	bool created = 1;
 	Offer offer = 2;
+}
+
+message WithdrawRequest{
+	string user_id = 1;
+	float amount = 2;
+	string bank_account = 3;
+	string bank_name = 4;
+}
+
+message WithdrawResponse{
+	bool created = 1;
 }
 
 message EditOfferResponse{

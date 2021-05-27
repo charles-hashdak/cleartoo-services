@@ -5,6 +5,7 @@ package user;
 service UserService {
     rpc Create(User) returns (Response) {}
     rpc FacebookLogin(User) returns (Response) {}
+    rpc AppleLogin(User) returns (Response) {}
     rpc Edit(User) returns (Response) {}
     rpc ChangePassword(User) returns (Response) {}
     rpc ResetPassword(User) returns (Response) {}
@@ -36,6 +37,7 @@ message User {
     string fb_token = 14;
     string push_token = 15;
     int32 rating_count = 16;
+    string apple_user_id = 17;
 }
 
 message Follower {
