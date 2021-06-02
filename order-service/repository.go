@@ -160,6 +160,7 @@ type DeleteFromOrderResponse struct {
 
 type GetRequest struct {
 	UserID 			string
+	Status 			string
 }
 
 type GetSingleRequest struct {
@@ -277,12 +278,14 @@ func UnmarshalDeleteFromOrderResponse(req *DeleteFromOrderResponse) *pb.DeleteFr
 func MarshalGetRequest(req *pb.GetRequest) *GetRequest{
 	return &GetRequest{
 		UserID: 		req.UserId,
+		Status: 		req.Status,
 	}
 }
 
 func UnmarshalGetRequest(req *GetRequest) *pb.GetRequest{
 	return &pb.GetRequest{
 		UserId: 		req.UserID,
+		Status: 		req.Status,
 	}
 }
 
@@ -637,6 +640,7 @@ type repository interface{
 	GetOrder(ctx context.Context, orderId primitive.ObjectID) (*Order, error)
 	GetOrderByOfferId(ctx context.Context, offerId primitive.ObjectID) (*Order, error)
 	GetInTransitOrders(ctx context.Context, req *GetRequest) ([]*Order, error)
+	GetOrdersByStatus(ctx context.Context, req *GetRequest) ([]*Order, error)
 	GetSales(ctx context.Context, req *GetRequest) ([]*Order, error)
 	CreateOffer(ctx context.Context, offer *CreateOfferRequest) error
 	Withdraw(ctx context.Context, req *WithdrawRequest) error
@@ -858,6 +862,26 @@ func (repo *MongoRepository) GetOrderByOfferId(ctx context.Context, offerId prim
 func (repo *MongoRepository) GetInTransitOrders(ctx context.Context, req *GetRequest) ([]*Order, error){
 	bsonFilters := bson.D{}
 	bsonFilters = append(bsonFilters, bson.E{"status", bson.D{bson.E{"$eq", "sent"}}})
+	opts := options.Find().SetShowRecordID(true)
+	cur, err := repo.orderCollection.Find(ctx,  bsonFilters, opts)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	var orders []*Order
+	for cur.Next(ctx) {
+		var order *Order
+		if err := cur.Decode(&order); err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+	return orders, err
+}
+
+func (repo *MongoRepository) GetOrdersByStatus(ctx context.Context, req *GetRequest) ([]*Order, error){
+	bsonFilters := bson.D{}
+	bsonFilters = append(bsonFilters, bson.E{"status", bson.D{bson.E{"$eq", req.Status}}})
 	opts := options.Find().SetShowRecordID(true)
 	cur, err := repo.orderCollection.Find(ctx,  bsonFilters, opts)
 	if err != nil {

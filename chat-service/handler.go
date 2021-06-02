@@ -42,6 +42,7 @@ func (s *handler) Send(ctx context.Context, chat *pb.Chat, res *pb.SendResponse)
 		UserId: chat.ReceiverId,
 		Title: "New message from "+senderRes.User.Username+"!",
 		Body: chat.Message,
+		Data: fmt.Sprintf(`{"viewName":$s}`, "Conversations")
 	})
 	if err3 != nil {
 		return err3
@@ -263,7 +264,6 @@ func (s *handler) GetConversations(ctx context.Context, req *pb.GetConversations
 	}
 	var convs []*Conversation
 	for _, conversation := range conversations {
-		fmt.Println(conversation.Product.ID.Hex())
 		var userId string
 		if conversation.SenderID == req.UserId {
 			userId = conversation.ReceiverID
@@ -315,9 +315,6 @@ func (s *handler) GetConversations(ctx context.Context, req *pb.GetConversations
 			if err4 != nil {
 				return err4
 			}
-			fmt.Println("conversation")
-			fmt.Println(conversation)
-			fmt.Println(orderRes.Order)
 			if orderRes.Order != nil {
 				if len(orderRes.Order.Offers) > 0 {
 					conversation.Order.Status = orderRes.Order.Status

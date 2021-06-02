@@ -47,6 +47,81 @@ func checkInTransit(orderClient orderPb.OrderService) error {
 	return nil
 }
 
+func checkDelivered(orderClient orderPb.OrderService) error {
+	ordersRes, err := orderClient.GetOrdersByStatus(context.Background(), &orderPb.GetRequest{
+		Status: "delivered",
+	})
+	if err != nil {
+		return err
+	}
+	orders := ordersRes.Orders
+	for _, order := range orders {
+		layout := "2006-01-02 15:04:05"
+		orderUpdatedAt, _ := time.Parse(layout, order.UpdatedAt)
+		if time.Since(orderUpdatedAt).Hours() >= 72 {
+			updateOrderStatusRes, err := orderClient.UpdateOrderStatus(context.Background(), &orderPb.UpdateOrderStatusRequest{
+				OrderId: order.Id,
+				Status: "finalised",
+			})
+			if err != nil || updateOrderStatusRes.Updated == false {
+				fmt.Println(err)
+				return errors.New(fmt.Sprintf("update status request failed... %v", err))
+			}
+		}
+	}
+	return nil
+}
+
+func checkConfirmed(orderClient orderPb.OrderService) error {
+	ordersRes, err := orderClient.GetOrdersByStatus(context.Background(), &orderPb.GetRequest{
+		Status: "confirmed",
+	})
+	if err != nil {
+		return err
+	}
+	orders := ordersRes.Orders
+	for _, order := range orders {
+		layout := "2006-01-02 15:04:05"
+		orderUpdatedAt, _ := time.Parse(layout, order.UpdatedAt)
+		if time.Since(orderUpdatedAt).Hours() >= 120 {
+			updateOrderStatusRes, err := orderClient.UpdateOrderStatus(context.Background(), &orderPb.UpdateOrderStatusRequest{
+				OrderId: order.Id,
+				Status: "canceled",
+			})
+			if err != nil || updateOrderStatusRes.Updated == false {
+				fmt.Println(err)
+				return errors.New(fmt.Sprintf("update status request failed... %v", err))
+			}
+		}
+	}
+	return nil
+}
+
+func checkWaiting(orderClient orderPb.OrderService) error {
+	ordersRes, err := orderClient.GetOrdersByStatus(context.Background(), &orderPb.GetRequest{
+		Status: "waiting",
+	})
+	if err != nil {
+		return err
+	}
+	orders := ordersRes.Orders
+	for _, order := range orders {
+		layout := "2006-01-02 15:04:05"
+		orderUpdatedAt, _ := time.Parse(layout, order.UpdatedAt)
+		if time.Since(orderUpdatedAt).Hours() >= 96 {
+			updateOrderStatusRes, err := orderClient.UpdateOrderStatus(context.Background(), &orderPb.UpdateOrderStatusRequest{
+				OrderId: order.Id,
+				Status: "canceled",
+			})
+			if err != nil || updateOrderStatusRes.Updated == false {
+				fmt.Println(err)
+				return errors.New(fmt.Sprintf("update status request failed... %v", err))
+			}
+		}
+	}
+	return nil
+}
+
 func GetThaiPostToken() (string, error){
 	hc := http.Client{}
 	api_token := os.Getenv("THAI_POST_TOKEN")

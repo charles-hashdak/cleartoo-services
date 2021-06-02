@@ -44,8 +44,9 @@ func main(){
 
 	addOrderMutex := sync.Mutex{}
 	updateOrderStatusMutex := sync.Mutex{}
+	transactionMutex := sync.Mutex{}
 
-	h := &handler{repository, cartClient, catalogClient, userClient, addOrderMutex, updateOrderStatusMutex}
+	h := &handler{repository, cartClient, catalogClient, userClient, addOrderMutex, updateOrderStatusMutex, transactionMutex}
 
 	if err := pb.RegisterOrderServiceHandler(service.Server(), h); err != nil{
 		fmt.Println(err)

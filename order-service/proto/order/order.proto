@@ -22,6 +22,7 @@ service OrderService{
 	rpc UpdateWallet(UpdateWalletRequest) returns (UpdateWalletResponse){}
 	rpc AddTransaction(AddTransactionRequest) returns (AddTransactionResponse){}
 	rpc GetInTransitOrders(GetRequest) returns (GetResponse){}
+	rpc GetOrdersByStatus(GetRequest) returns (GetResponse){}
 }
 
 message Order{
@@ -185,6 +186,7 @@ message EditOfferResponse{
 
 message GetRequest{
 	string user_id = 1;
+	string status = 2;
 }
 
 message GetResponse{
