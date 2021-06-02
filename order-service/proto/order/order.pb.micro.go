@@ -57,6 +57,7 @@ type OrderService interface {
 	UpdateWallet(ctx context.Context, in *UpdateWalletRequest, opts ...client.CallOption) (*UpdateWalletResponse, error)
 	AddTransaction(ctx context.Context, in *AddTransactionRequest, opts ...client.CallOption) (*AddTransactionResponse, error)
 	GetInTransitOrders(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetResponse, error)
+	GetOrdersByStatus(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetResponse, error)
 }
 
 type orderService struct {
@@ -221,6 +222,16 @@ func (c *orderService) GetInTransitOrders(ctx context.Context, in *GetRequest, o
 	return out, nil
 }
 
+func (c *orderService) GetOrdersByStatus(ctx context.Context, in *GetRequest, opts ...client.CallOption) (*GetResponse, error) {
+	req := c.c.NewRequest(c.name, "OrderService.GetOrdersByStatus", in)
+	out := new(GetResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for OrderService service
 
 type OrderServiceHandler interface {
@@ -239,6 +250,7 @@ type OrderServiceHandler interface {
 	UpdateWallet(context.Context, *UpdateWalletRequest, *UpdateWalletResponse) error
 	AddTransaction(context.Context, *AddTransactionRequest, *AddTransactionResponse) error
 	GetInTransitOrders(context.Context, *GetRequest, *GetResponse) error
+	GetOrdersByStatus(context.Context, *GetRequest, *GetResponse) error
 }
 
 func RegisterOrderServiceHandler(s server.Server, hdlr OrderServiceHandler, opts ...server.HandlerOption) error {
@@ -258,6 +270,7 @@ func RegisterOrderServiceHandler(s server.Server, hdlr OrderServiceHandler, opts
 		UpdateWallet(ctx context.Context, in *UpdateWalletRequest, out *UpdateWalletResponse) error
 		AddTransaction(ctx context.Context, in *AddTransactionRequest, out *AddTransactionResponse) error
 		GetInTransitOrders(ctx context.Context, in *GetRequest, out *GetResponse) error
+		GetOrdersByStatus(ctx context.Context, in *GetRequest, out *GetResponse) error
 	}
 	type OrderService struct {
 		orderService
@@ -328,4 +341,8 @@ func (h *orderServiceHandler) AddTransaction(ctx context.Context, in *AddTransac
 
 func (h *orderServiceHandler) GetInTransitOrders(ctx context.Context, in *GetRequest, out *GetResponse) error {
 	return h.OrderServiceHandler.GetInTransitOrders(ctx, in, out)
+}
+
+func (h *orderServiceHandler) GetOrdersByStatus(ctx context.Context, in *GetRequest, out *GetResponse) error {
+	return h.OrderServiceHandler.GetOrdersByStatus(ctx, in, out)
 }

@@ -8,7 +8,7 @@ replace (
 )
 
 require (
-	github.com/charles-hashdak/cleartoo-services/cart-service v0.0.0-20210310052804-c83c37d687af
+	github.com/charles-hashdak/cleartoo-services/user-service v0.0.0-20210517082155-74a28d97d113 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/micro/go-micro/v2 v2.9.1
 	github.com/micro/micro/v2 v2.9.2-0.20200728090142-c7f7e4a71077 // indirect

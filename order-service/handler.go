@@ -29,11 +29,11 @@ type handler struct{
 	userClient userPb.UserService
 	addOrderMutex sync.Mutex
 	updateOrderStatusMutex sync.Mutex
+	transactionMutex sync.Mutex
 }
 
 func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.OrderResponse) error {
 	s.addOrderMutex.Lock()
-	defer s.addOrderMutex.Unlock()
 	orderId, err := s.repository.Order(ctx, MarshalOrderRequest(req))
 
 	if err != nil{
@@ -60,6 +60,8 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 			return err
 		}
 	}
+
+	s.addOrderMutex.Unlock()
 
 	_, err = s.userClient.SendNotification(ctx, &userPb.Notification{
 		UserId: req.Order.Products[0].OwnerId,
@@ -145,7 +147,9 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 }
 
 func (s *handler) UpdateOrderStatus(ctx context.Context, req *pb.UpdateOrderStatusRequest, res *pb.UpdateOrderStatusResponse) error {
+	s.updateOrderStatusMutex.Lock()
 	status, err := s.repository.UpdateOrderStatus(ctx, MarshalUpdateOrderStatusRequest(req))
+	s.updateOrderStatusMutex.Unlock()
 	if err != nil {
 		return err
 	}
@@ -182,8 +186,8 @@ func (s *handler) UpdateOrderShippingStatus(ctx context.Context, req *pb.UpdateO
 
 func (s *handler) CancelOrder(ctx context.Context, req *pb.CancelOrderRequest, res *pb.CancelOrderResponse) error {
 	s.updateOrderStatusMutex.Lock()
-	defer s.updateOrderStatusMutex.Unlock()
 	err := s.repository.CancelOrder(ctx, MarshalCancelOrderRequest(req))
+	s.updateOrderStatusMutex.Unlock()
 	if err != nil {
 		return err
 	}
@@ -208,6 +212,15 @@ func (s *handler) GetOrders(ctx context.Context, req *pb.GetRequest, res *pb.Get
 
 func (s *handler) GetInTransitOrders(ctx context.Context, req *pb.GetRequest, res *pb.GetResponse) error {
 	orders, err := s.repository.GetInTransitOrders(ctx, MarshalGetRequest(req))
+	if err != nil {
+		return err
+	}
+	res.Orders = UnmarshalOrderCollection(orders)
+	return nil
+}
+
+func (s *handler) GetOrdersByStatus(ctx context.Context, req *pb.GetRequest, res *pb.GetResponse) error {
+	orders, err := s.repository.GetOrdersByStatus(ctx, MarshalGetRequest(req))
 	if err != nil {
 		return err
 	}
@@ -276,11 +289,11 @@ func (s *handler) CreateOffer(ctx context.Context, req *pb.CreateOfferRequest, r
 }
 
 func (s *handler) Withdraw(ctx context.Context, req *pb.WithdrawRequest, res *pb.WithdrawResponse) error {
-
-	// Save our offer
+	s.transactionMutex.Lock()
 	if err := s.repository.Withdraw(ctx, MarshalWithdrawRequest(req)); err != nil {
 		return err
 	}
+	s.transactionMutex.Unlock()
 
 	userRes, err := s.userClient.Get(ctx, &userPb.User{
 		Id: req.UserId,
@@ -377,8 +390,9 @@ func (s *handler) InitializeWallet(ctx context.Context, req *pb.InitializeWallet
 }
 
 func (s *handler) UpdateWallet(ctx context.Context, req *pb.UpdateWalletRequest, res *pb.UpdateWalletResponse) error {
-
+	s.transactionMutex.Lock()
 	err := s.repository.UpdateWallet(ctx, MarshalUpdateWalletRequest(req))
+	s.transactionMutex.Unlock()
 
 	if err != nil{
 		return err
@@ -390,8 +404,9 @@ func (s *handler) UpdateWallet(ctx context.Context, req *pb.UpdateWalletRequest,
 }
 
 func (s *handler) AddTransaction(ctx context.Context, req *pb.AddTransactionRequest, res *pb.AddTransactionResponse) error {
-
+	s.transactionMutex.Lock()
 	err := s.repository.AddTransaction(ctx, MarshalAddTransactionRequest(req))
+	s.transactionMutex.Unlock()
 
 	if err != nil{
 		return nil

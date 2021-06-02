@@ -15,6 +15,7 @@ import (
 	"math"
 	"math/rand"
 	"sync"
+    "encoding/json"
 	uuid "github.com/satori/go.uuid"
 
 	pb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
@@ -69,16 +70,22 @@ func (srv *service) SendNotification(ctx context.Context, req *pb.Notification, 
 	if(user.PushToken != ""){
 	    pushToken, err := expo.NewExponentPushToken(user.PushToken)
 	    if err != nil {
-	        panic(err)
+	        fmt.Println(err)
 	    }
 
 	    client := expo.NewPushClient(nil)
+
+		var dataInterface map[string]string{}
+		err = json.Unmarshal([]byte(req.Data), &dataInterface)
+	    if err != nil {
+	        fmt.Println(err)
+	    }
 
 	    response, err := client.Publish(
 	        &expo.PushMessage{
 	            To: []expo.ExponentPushToken{pushToken},
 	            Body: req.Body,
-	            Data: map[string]string{"withSome": "data"},
+	            Data: dataInterface,
 	            Sound: "default",
 	            Title: req.Title,
 	            Priority: expo.DefaultPriority,

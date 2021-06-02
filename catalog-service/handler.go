@@ -163,7 +163,7 @@ func (s *handler) GetProducts(ctx context.Context, req *pb.GetRequest, res *pb.G
 		if len(product.Offers) > 0 {
 			var filteredOffers Offers
 			for _, offer := range product.Offers {
-				if offer.UserID == req.UserId {
+				if offer.UserID == req.UserId || product.Owner.OwnerID == req.UserId {
 					filteredOffers = append(filteredOffers, offer)
 					if offer.Status == "accepted" {
 						product.Price = offer.Amount

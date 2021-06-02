@@ -22,7 +22,10 @@ func main(){
 
 	for true {
         checkInTransit(orderClient)
-        time.Sleep(time.Second*10)
+        checkDelivered(orderClient)
+        checkConfirmed(orderClient)
+        checkWaiting(orderClient)
+        time.Sleep(time.Second*60)
     }
 
 	if err := service.Run(); err != nil{
