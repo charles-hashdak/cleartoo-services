@@ -42,7 +42,7 @@ func (s *handler) Send(ctx context.Context, chat *pb.Chat, res *pb.SendResponse)
 		UserId: chat.ReceiverId,
 		Title: "New message from "+senderRes.User.Username+"!",
 		Body: chat.Message,
-		Data: fmt.Sprintf(`{"viewName":$s}`, "Conversations")
+		Data: fmt.Sprintf(`{"viewName":"%s"}`, "Conversations"),
 	})
 	if err3 != nil {
 		return err3

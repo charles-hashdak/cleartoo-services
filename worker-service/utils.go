@@ -9,6 +9,7 @@ import (
 	"os"
     "encoding/json"
 	"bytes"
+	"time"
 
 	orderPb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
 )
@@ -158,7 +159,7 @@ func GetThaiPostStatus(trackId string) (string, string, error){
 	token, err := GetThaiPostToken()
 	form, _ := json.Marshal(GetThaiPostStatusRequest{
 		Status: "all",
-		Language: "EN",
+		Language: "TH",
 		Barcode: []string{trackId},
 	})
 	httpReq, err := http.NewRequest("POST", "https://trackapi.thailandpost.co.th/post/api/v1/track", bytes.NewBuffer(form))

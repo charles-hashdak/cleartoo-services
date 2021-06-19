@@ -458,17 +458,12 @@ func (repo *MongoRepository) GetShippingFees(ctx context.Context, req *GetShippi
 			fmt.Println(err2)
 			return 0, err2
 		}
-		fmt.Println(shippingFees["shipping_fees"])
 		for _, fees := range []interface{}(shippingFees["shipping_fees"].(primitive.A)) {
 			conv_fees := map[string]interface{}(fees.(primitive.M))
-			fmt.Println(conv_fees["weight"].(int32))
-			fmt.Println(req.Weight)
 			if req.Weight >= conv_fees["weight"].(int32) {
-				fmt.Println("inf")
 				price = conv_fees["price"].(int32)
 			}
 			if req.Weight < conv_fees["weight"].(int32) {
-				fmt.Println("ok")
 				return conv_fees["price"].(int32), err
 			}
 		}

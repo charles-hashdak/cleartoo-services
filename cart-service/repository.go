@@ -383,8 +383,6 @@ func (repo *MongoRepository) CreateCart(ctx context.Context, req *GetRequest) er
 }
 
 func (repo *MongoRepository) IsInCart(ctx context.Context, req *IsInCartRequest) (bool, error){
-	fmt.Println(req.ProductID)
-	fmt.Println(req.UserID)
 	productId, _ := primitive.ObjectIDFromHex(req.ProductID)
 	bsonFilters := bson.D{
 		{"userid", req.UserID},

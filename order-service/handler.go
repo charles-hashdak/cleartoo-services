@@ -10,8 +10,7 @@ import(
 	"sort"
   	"net/smtp"
 	"html/template"
-	"io/ioutil"
-	"log"
+	"math"
 	"os"
 	"bytes"
 	"strconv"
@@ -34,6 +33,7 @@ type handler struct{
 
 func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.OrderResponse) error {
 	s.addOrderMutex.Lock()
+	defer s.addOrderMutex.Unlock()
 	orderId, err := s.repository.Order(ctx, MarshalOrderRequest(req))
 
 	if err != nil{
@@ -60,8 +60,6 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 			return err
 		}
 	}
-
-	s.addOrderMutex.Unlock()
 
 	_, err = s.userClient.SendNotification(ctx, &userPb.Notification{
 		UserId: req.Order.Products[0].OwnerId,
@@ -94,15 +92,6 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)
-
-	files, err := ioutil.ReadDir("./")
-    if err != nil {
-        log.Fatal(err)
-    }
- 
-    for _, f := range files {
-            fmt.Println(f.Name())
-    }
 
 	t, err := template.ParseFiles("/var/templates/emails/order_confirmation.html")
 	if err != nil {
@@ -148,8 +137,8 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 
 func (s *handler) UpdateOrderStatus(ctx context.Context, req *pb.UpdateOrderStatusRequest, res *pb.UpdateOrderStatusResponse) error {
 	s.updateOrderStatusMutex.Lock()
+	defer s.updateOrderStatusMutex.Unlock()
 	status, err := s.repository.UpdateOrderStatus(ctx, MarshalUpdateOrderStatusRequest(req))
-	s.updateOrderStatusMutex.Unlock()
 	if err != nil {
 		return err
 	}
@@ -186,8 +175,8 @@ func (s *handler) UpdateOrderShippingStatus(ctx context.Context, req *pb.UpdateO
 
 func (s *handler) CancelOrder(ctx context.Context, req *pb.CancelOrderRequest, res *pb.CancelOrderResponse) error {
 	s.updateOrderStatusMutex.Lock()
+	defer s.updateOrderStatusMutex.Unlock()
 	err := s.repository.CancelOrder(ctx, MarshalCancelOrderRequest(req))
-	s.updateOrderStatusMutex.Unlock()
 	if err != nil {
 		return err
 	}
@@ -248,7 +237,6 @@ func (s *handler) GetSingleOrder(ctx context.Context, req *pb.GetSingleRequest, 
 	if err != nil {
 		return err
 	}
-	fmt.Println(order)
 	res.Order = UnmarshalOrder(order)
 	return nil
 }
@@ -290,10 +278,10 @@ func (s *handler) CreateOffer(ctx context.Context, req *pb.CreateOfferRequest, r
 
 func (s *handler) Withdraw(ctx context.Context, req *pb.WithdrawRequest, res *pb.WithdrawResponse) error {
 	s.transactionMutex.Lock()
+	defer s.transactionMutex.Unlock()
 	if err := s.repository.Withdraw(ctx, MarshalWithdrawRequest(req)); err != nil {
 		return err
 	}
-	s.transactionMutex.Unlock()
 
 	userRes, err := s.userClient.Get(ctx, &userPb.User{
 		Id: req.UserId,
@@ -316,15 +304,6 @@ func (s *handler) Withdraw(ctx context.Context, req *pb.WithdrawRequest, res *pb
 
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)
-
-	files, err := ioutil.ReadDir("./")
-    if err != nil {
-        log.Fatal(err)
-    }
- 
-    for _, f := range files {
-            fmt.Println(f.Name())
-    }
 
 	t, err := template.ParseFiles("/var/templates/emails/withdraw_request.html")
 	if err != nil {
@@ -376,6 +355,7 @@ func (s *handler) GetWallet(ctx context.Context, req *pb.GetWalletRequest, res *
 	if err != nil {
 		return err
 	}
+	wallet.Balance = float32(math.Round(float64(wallet.Balance*10))/10)
 	res.Wallet = UnmarshalWallet(wallet)
 	return nil
 }
@@ -391,8 +371,8 @@ func (s *handler) InitializeWallet(ctx context.Context, req *pb.InitializeWallet
 
 func (s *handler) UpdateWallet(ctx context.Context, req *pb.UpdateWalletRequest, res *pb.UpdateWalletResponse) error {
 	s.transactionMutex.Lock()
+	defer s.transactionMutex.Unlock()
 	err := s.repository.UpdateWallet(ctx, MarshalUpdateWalletRequest(req))
-	s.transactionMutex.Unlock()
 
 	if err != nil{
 		return err
@@ -405,8 +385,8 @@ func (s *handler) UpdateWallet(ctx context.Context, req *pb.UpdateWalletRequest,
 
 func (s *handler) AddTransaction(ctx context.Context, req *pb.AddTransactionRequest, res *pb.AddTransactionResponse) error {
 	s.transactionMutex.Lock()
+	defer s.transactionMutex.Unlock()
 	err := s.repository.AddTransaction(ctx, MarshalAddTransactionRequest(req))
-	s.transactionMutex.Unlock()
 
 	if err != nil{
 		return nil
