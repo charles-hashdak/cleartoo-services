@@ -65,8 +65,6 @@ func (srv *service) SendNotification(ctx context.Context, req *pb.Notification, 
 		return err
 	}
 
-	fmt.Println(user.PushToken)
-
 	if(user.PushToken != ""){
 	    pushToken, err := expo.NewExponentPushToken(user.PushToken)
 	    if err != nil {
@@ -75,11 +73,14 @@ func (srv *service) SendNotification(ctx context.Context, req *pb.Notification, 
 
 	    client := expo.NewPushClient(nil)
 
-		var dataInterface map[string]string{}
+		var dataInterface map[string]string
 		err = json.Unmarshal([]byte(req.Data), &dataInterface)
 	    if err != nil {
 	        fmt.Println(err)
 	    }
+
+		fmt.Println(req.Data)
+		fmt.Println(dataInterface)
 
 	    response, err := client.Publish(
 	        &expo.PushMessage{
@@ -163,6 +164,7 @@ func (srv *service) GetFollowing(ctx context.Context, req *pb.User, res *pb.Resp
 func (srv *service) Auth(ctx context.Context, req *pb.User, res *pb.Response) error {
 	srv.globalMutex.Lock()
 	defer srv.globalMutex.Unlock()
+	req.Email = strings.ToLower(req.Email)
     _, ok := metadata.FromIncomingContext(ctx)
     if !ok {
         return status.Errorf(codes.DataLoss, "Failed to get metadata")
@@ -303,14 +305,14 @@ func (srv *service) FacebookLogin(ctx context.Context, req *pb.User, res *pb.Res
 	srv.globalMutex.Lock()
 	defer srv.globalMutex.Unlock()
 	user, err := srv.repo.GetByEmail(req.Email)
-	if err != nil {
+	if err != nil && err.Error() != "record not found" {
+		fmt.Println(err)
 		return err
 	}
-	fmt.Println(user)
-	fmt.Println(req)
-	if(user.Email != req.Email){
+	if(err != nil && err.Error() == "record not found"){
+		req.Id = uuid.NewV4().String()
 		var usernameId = 1000 + rand.Intn(9999-1000)
-		req.Username = strings.Split(user.Email, string('@'))[0] + strconv.Itoa(usernameId)
+		req.Username = strings.Split(req.Email, string('@'))[0] + strconv.Itoa(usernameId)
       	req.Name= ""
       	req.Company= ""
       	req.Description= ""
@@ -355,13 +357,16 @@ func (srv *service) FacebookLogin(ctx context.Context, req *pb.User, res *pb.Res
 func (srv *service) AppleLogin(ctx context.Context, req *pb.User, res *pb.Response) error {
 	srv.globalMutex.Lock()
 	defer srv.globalMutex.Unlock()
+	fmt.Println(req.AppleUserId)
 	user, err := srv.repo.GetByAppleUserId(req.AppleUserId)
-	if err != nil {
+	if err != nil && err.Error() != "record not found" {
+		fmt.Println(err)
 		return err
 	}
-	if(user.Email != req.Email){
+	if(err != nil && err.Error() == "record not found"){
+		req.Id = uuid.NewV4().String()
 		var usernameId = 1000 + rand.Intn(9999-1000)
-		req.Username = strings.Split(user.Email, string('@'))[0] + strconv.Itoa(usernameId)
+		req.Username = strings.Split(req.Email, string('@'))[0] + strconv.Itoa(usernameId)
       	req.Name= ""
       	req.Company= ""
       	req.Description= ""
@@ -426,6 +431,7 @@ func (srv *service) ChangePassword(ctx context.Context, req *pb.User, res *pb.Re
 func (srv *service) ResetPassword(ctx context.Context, req *pb.User, res *pb.Response) error {
 	srv.globalMutex.Lock()
 	defer srv.globalMutex.Unlock()
+	req.Email = strings.ToLower(req.Email)
 	user, err1 := srv.repo.GetByEmail(req.Email)
 	if err1 != nil {
 		return err1

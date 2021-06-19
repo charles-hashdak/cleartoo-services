@@ -996,7 +996,7 @@ func (repo *MongoRepository) EditOffer(ctx context.Context, offer *Offer) error{
 			&AddTransactionRequest{
 				Transaction: Transaction{
 					WalletID: wallet.ID.Hex(),
-					Amount: offer.Amount,
+					Amount: order.SubTotal + order.ShippingFees - offer.Amount,
 					Type: "partial_cancel",
 					OrderID: order.ID.Hex(),
 				},
@@ -1153,11 +1153,11 @@ func (repo *MongoRepository) UpdateOrderStatus(ctx context.Context, req *UpdateO
 		if err != nil {
 			return "", errors.New(fmt.Sprintf("get wallet request failed... %v", err))
 		}
-		partialCancelAmount := float32(0)
+		totalAmount := order.SubTotal + order.ShippingFees
 		if len(order.Offers) > 0 {
 			for _, offer := range order.Offers {
 				if offer.Status == "accepted" {
-					partialCancelAmount += offer.Amount
+					totalAmount = offer.Amount
 				}
 			}
 		}
@@ -1166,7 +1166,7 @@ func (repo *MongoRepository) UpdateOrderStatus(ctx context.Context, req *UpdateO
 			&AddTransactionRequest{
 				Transaction: Transaction{
 					WalletID: wallet.ID.Hex(),
-					Amount: order.SubTotal + order.ShippingFees - partialCancelAmount,
+					Amount: totalAmount,
 					Type: "gain",
 					OrderID: order.ID.Hex(),
 				},
@@ -1282,7 +1282,7 @@ func (repo *MongoRepository) GetThaiPostStatus(ctx context.Context, req *UpdateO
 	token, err := repo.GetThaiPostToken(ctx, req)
 	form, _ := json.Marshal(GetThaiPostStatusRequest{
 		Status: "all",
-		Language: "EN",
+		Language: "TH",
 		Barcode: []string{req.TrackID},
 	})
 	httpReq, err := http.NewRequest("POST", "https://trackapi.thailandpost.co.th/post/api/v1/track", bytes.NewBuffer(form))

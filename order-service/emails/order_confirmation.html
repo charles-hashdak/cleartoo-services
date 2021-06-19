@@ -5,15 +5,10 @@
 <head>
     <meta name="viewport" content="width=device-width"/>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
     <style type="text/css">
     	@font-face {
 		  font-family: "Prompt";
 		  src: url("./assets/Prompt.ttf") format("ttf");
-		}
-    	@font-face {
-		  font-family: "Poppins";
-		  src: url("./assets/Poppins.ttf") format("ttf");
 		}
 		.items-container{
 
@@ -102,8 +97,8 @@
     	ขอขอบคุณ<br>
 		ทีมเคลียร์ตู้
 	</p>
-	<p style="font-family: 'Poppins'; margin-top: 40px">
-	    <strong style="font-family: 'Poppins'; font-weight: 700; font-size: 24px">Thank you {{.Username}},</strong><br><br>
+	<p style="font-family: 'Roboto'; margin-top: 40px">
+	    <strong style="font-family: 'Roboto'; font-weight: 700; font-size: 24px">Thank you {{.Username}},</strong><br><br>
 	    Your order has been successfully processed on {{.Date}}, and will be shipped within 3-5 days via {{.ShippingMethod}}.<br>
 	    You will receive a shipping confirmation with the tracking number once the order has been sent.<br><br>
 	</p>
@@ -112,36 +107,36 @@
 	</div>
 	<div class="details-container">
 		<div class="details-titles">
-			<div class="detail-title">Subtotal</div>
-			<div class="detail-title">Postage</div>
-			<div class="detail-title">Buyer Protection Fee</div>
+			<div class="detail-title" style="font-family: 'Roboto';">Subtotal</div>
+			<div class="detail-title" style="font-family: 'Roboto';">Postage</div>
+			<div class="detail-title" style="font-family: 'Roboto';">Buyer Protection Fee</div>
 		</div>
 		<div class="details-values">
-			<div class="detail-value">฿{{.SubTotal}}</div>
-			<div class="detail-value">฿{{.ShippingFees}}</div>
-			<div class="detail-value">฿{{.Taxes}}</div>
+			<div class="detail-value" style="font-family: 'Roboto';">฿{{.SubTotal}}</div>
+			<div class="detail-value" style="font-family: 'Roboto';">฿{{.ShippingFees}}</div>
+			<div class="detail-value" style="font-family: 'Roboto';">฿{{.Taxes}}</div>
 		</div>
 	</div>
 	<div class="details-container">
 		<div class="details-titles">
-			<div class="detail-title">Amount Paid</div>
+			<div class="detail-title" style="font-family: 'Roboto';">Amount Paid</div>
 		</div>
 		<div class="details-values">
-			<div class="detail-value">฿{{.Total}}</div>
+			<div class="detail-value" style="font-family: 'Roboto';">฿{{.Total}}</div>
 		</div>
 	</div>
 	<div class="details-container">
 		<div class="details-titles">
-			<div class="detail-title">Payment method chosen: {{.PaymentMethod}}</div>
-			<div class="detail-title">Order n°{{.OrderNumber}}</div>
+			<div class="detail-title" style="font-family: 'Roboto';">Payment method chosen: {{.PaymentMethod}}</div>
+			<div class="detail-title" style="font-family: 'Roboto';">Order n°{{.OrderNumber}}</div>
 		</div>
 		<div class="details-values">
 		</div>
 	</div>
-	<p style="font-family: 'Poppins'; margin-top: 24px">
+	<p style="font-family: 'Roboto'; margin-top: 24px">
 	    If you have any questions, feel free to contact us at any time via our email support@cleartooapp.com<br><br>
 	</p>
-	<p style="font-family: 'Poppins'">
+	<p style="font-family: 'Roboto'">
     	Thank you,<br>
 		Team Cleartoo
 	</p>
