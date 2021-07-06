@@ -35,8 +35,9 @@ func main(){
 	orderCollection := client.Database("cleartoo").Collection("order")
 	walletCollection := client.Database("cleartoo").Collection("wallet")
 	transactionCollection := client.Database("cleartoo").Collection("transaction")
+	paymentMutex := sync.Mutex{}
 
-	repository := &MongoRepository{orderCollection, walletCollection, transactionCollection}
+	repository := &MongoRepository{orderCollection, walletCollection, transactionCollection, paymentMutex}
 
 	catalogClient := catalogPb.NewCatalogService("cleartoo.catalog", service.Client())
 	cartClient := cartPb.NewCartService("cleartoo.cart", service.Client())

@@ -31,17 +31,67 @@ type handler struct{
 	transactionMutex sync.Mutex
 }
 
-func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.OrderResponse) error {
+func (s *handler) MakePayment(ctx context.Context, req *pb.OrderRequest, res *pb.MakePaymentResponse) error {
 	s.addOrderMutex.Lock()
 	defer s.addOrderMutex.Unlock()
-	orderId, err := s.repository.Order(ctx, MarshalOrderRequest(req))
+
+	userRes, err := s.userClient.Get(ctx, &userPb.User{
+		Id: req.Order.UserId,
+	})
+	if err != nil {
+		return err
+	}
+
+	url, paymentId, err := s.repository.MakePayment(ctx, MarshalOrderRequest(req), userRes.User)
 
 	if err != nil{
 		fmt.Println(err)
 		return err
 	}
 
+	res.Url = url
+	res.PaymentId = paymentId
 	res.Added = true
+
+	for _, item := range req.Order.Products {
+		_, err = s.catalogClient.Unavailable(ctx, &catalogPb.Product{
+			Id: item.Id,
+		})
+
+		if err != nil{
+			return err
+		}
+	}
+	
+	return nil
+}
+
+func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.OrderResponse) error {
+	s.addOrderMutex.Lock()
+	defer s.addOrderMutex.Unlock()
+
+	userRes, err := s.userClient.Get(ctx, &userPb.User{
+		Id: req.Order.UserId,
+	})
+	if err != nil {
+		return err
+	}
+
+	orderId, err := s.repository.Order(ctx, MarshalOrderRequest(req), userRes.User)
+
+	if err != nil{
+		fmt.Println(err)
+		for _, item := range req.Order.Products {
+			_, err = s.catalogClient.Available(ctx, &catalogPb.Product{
+				Id: item.Id,
+			})
+
+			if err != nil{
+				return err
+			}
+		}
+		return err
+	}
 
 	_, err = s.cartClient.EmptyCart(ctx, &cartPb.GetRequest{
 		UserId: req.Order.UserId,
@@ -61,6 +111,8 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 		}
 	}
 
+	res.Added = true
+
 	_, err = s.userClient.SendNotification(ctx, &userPb.Notification{
 		UserId: req.Order.Products[0].OwnerId,
 		Title: "New order!",
@@ -68,13 +120,6 @@ func (s *handler) Order(ctx context.Context, req *pb.OrderRequest, res *pb.Order
 	})
 
 	if err != nil{
-		return err
-	}
-
-	userRes, err := s.userClient.Get(ctx, &userPb.User{
-		Id: req.Order.UserId,
-	})
-	if err != nil {
 		return err
 	}
 

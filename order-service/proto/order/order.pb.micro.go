@@ -42,6 +42,7 @@ func NewOrderServiceEndpoints() []*api.Endpoint {
 // Client API for OrderService service
 
 type OrderService interface {
+	MakePayment(ctx context.Context, in *OrderRequest, opts ...client.CallOption) (*MakePaymentResponse, error)
 	Order(ctx context.Context, in *OrderRequest, opts ...client.CallOption) (*OrderResponse, error)
 	UpdateOrderStatus(ctx context.Context, in *UpdateOrderStatusRequest, opts ...client.CallOption) (*UpdateOrderStatusResponse, error)
 	UpdateOrderShippingStatus(ctx context.Context, in *UpdateOrderStatusRequest, opts ...client.CallOption) (*UpdateOrderStatusResponse, error)
@@ -70,6 +71,16 @@ func NewOrderService(name string, c client.Client) OrderService {
 		c:    c,
 		name: name,
 	}
+}
+
+func (c *orderService) MakePayment(ctx context.Context, in *OrderRequest, opts ...client.CallOption) (*MakePaymentResponse, error) {
+	req := c.c.NewRequest(c.name, "OrderService.MakePayment", in)
+	out := new(MakePaymentResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *orderService) Order(ctx context.Context, in *OrderRequest, opts ...client.CallOption) (*OrderResponse, error) {
@@ -235,6 +246,7 @@ func (c *orderService) GetOrdersByStatus(ctx context.Context, in *GetRequest, op
 // Server API for OrderService service
 
 type OrderServiceHandler interface {
+	MakePayment(context.Context, *OrderRequest, *MakePaymentResponse) error
 	Order(context.Context, *OrderRequest, *OrderResponse) error
 	UpdateOrderStatus(context.Context, *UpdateOrderStatusRequest, *UpdateOrderStatusResponse) error
 	UpdateOrderShippingStatus(context.Context, *UpdateOrderStatusRequest, *UpdateOrderStatusResponse) error
@@ -255,6 +267,7 @@ type OrderServiceHandler interface {
 
 func RegisterOrderServiceHandler(s server.Server, hdlr OrderServiceHandler, opts ...server.HandlerOption) error {
 	type orderService interface {
+		MakePayment(ctx context.Context, in *OrderRequest, out *MakePaymentResponse) error
 		Order(ctx context.Context, in *OrderRequest, out *OrderResponse) error
 		UpdateOrderStatus(ctx context.Context, in *UpdateOrderStatusRequest, out *UpdateOrderStatusResponse) error
 		UpdateOrderShippingStatus(ctx context.Context, in *UpdateOrderStatusRequest, out *UpdateOrderStatusResponse) error
@@ -281,6 +294,10 @@ func RegisterOrderServiceHandler(s server.Server, hdlr OrderServiceHandler, opts
 
 type orderServiceHandler struct {
 	OrderServiceHandler
+}
+
+func (h *orderServiceHandler) MakePayment(ctx context.Context, in *OrderRequest, out *MakePaymentResponse) error {
+	return h.OrderServiceHandler.MakePayment(ctx, in, out)
 }
 
 func (h *orderServiceHandler) Order(ctx context.Context, in *OrderRequest, out *OrderResponse) error {

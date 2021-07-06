@@ -7,6 +7,7 @@ package order;
 option go_package = "proto/order";
 
 service OrderService{
+	rpc MakePayment(OrderRequest) returns (MakePaymentResponse){}
 	rpc Order(OrderRequest) returns (OrderResponse){}
 	rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse){}
 	rpc UpdateOrderShippingStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse){}
@@ -42,6 +43,7 @@ message Order{
 	repeated Offer offers = 14;
 	string created_at = 15;
 	string updated_at = 16;
+	string payment_id = 17;
 }
 
 message Offer{
@@ -126,6 +128,12 @@ message OrderRequest{
 
 message OrderResponse{
 	bool added = 1;
+}
+
+message MakePaymentResponse{
+	bool added = 1;
+	string url = 2;
+	string payment_id = 3;
 }
 
 message DeleteFromOrderRequest{

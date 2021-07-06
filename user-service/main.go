@@ -14,7 +14,7 @@ const schema = `
 		id varchar(36) not null,
 		name varchar(125) not null,
 		email varchar(225) not null unique,
-		username varchar(225) default null not null unique,
+		username varchar(225) not null unique,
 		password varchar(225) not null,
 		company varchar(125),
 		description text,
@@ -42,7 +42,7 @@ const schema = `
 		id varchar(36) not null,
 		rater_id varchar(36) not null,
 		user_id varchar(36) not null,
-		order_id varchar(36) not null unique,
+		order_id varchar(36) not null,
 		rate float(8) not null,
 		primary key (id)
 	);

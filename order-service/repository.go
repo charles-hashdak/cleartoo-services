@@ -7,6 +7,7 @@ import(
 	"fmt"
 	"errors"
 	"net/http"
+	"sync"
 	_ "net/http/httputil"
 	"math/rand"
 	_ "strings"
@@ -24,6 +25,7 @@ import(
 	_ "log"
 
 	pb "github.com/charles-hashdak/cleartoo-services/order-service/proto/order"
+	userPb "github.com/charles-hashdak/cleartoo-services/user-service/proto/user"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -47,6 +49,7 @@ type Order struct{
 	Offers 			Offers 				`json:"offers"`
 	CreatedAt 		string 				`json:"created_at"`
 	UpdatedAt 		string 				`json:"updated_at"`
+	PaymentID 		string 				`json:"paymentid"`
 }
 
 type Offer struct{
@@ -462,6 +465,7 @@ func MarshalOrder(order *pb.Order) *Order{
 		Offers:			MarshalOffers(order.Offers),
 		CreatedAt:		order.CreatedAt,
 		UpdatedAt:		order.UpdatedAt,
+		PaymentID:		order.PaymentId,
 	}
 }
 
@@ -483,6 +487,7 @@ func UnmarshalOrder(order *Order) *pb.Order{
 		Offers:			UnmarshalOffers(order.Offers),
 		CreatedAt:		order.CreatedAt,
 		UpdatedAt:		order.UpdatedAt,
+		PaymentId:		order.PaymentID,
 	}
 }
 
@@ -634,7 +639,8 @@ func UnmarshalOrderCollection(orders []*Order) []*pb.Order {
 }
 
 type repository interface{
-	Order(ctx context.Context, req *OrderRequest) (string, error)
+	MakePayment(ctx context.Context, req *OrderRequest, user *userPb.User) (string, string, error)
+	Order(ctx context.Context, req *OrderRequest, user *userPb.User) (string, error)
 	GetSingleOrder(ctx context.Context, req *GetSingleRequest) (*Order, error)
 	GetOrders(ctx context.Context, req *GetRequest) ([]*Order, error)
 	GetOrder(ctx context.Context, orderId primitive.ObjectID) (*Order, error)
@@ -660,6 +666,7 @@ type MongoRepository struct{
 	orderCollection 		*mongo.Collection
 	walletCollection 		*mongo.Collection
 	transactionCollection 	*mongo.Collection
+	paymentMutex 			sync.Mutex
 }
 
 func (repo *MongoRepository) GetSingleOrder(ctx context.Context, req *GetSingleRequest) (*Order, error){
@@ -681,12 +688,118 @@ func (repo *MongoRepository) GetSingleOrder(ctx context.Context, req *GetSingleR
 	return nil, nil
 }
 
+type CustomerRequest struct {
+	Name        	string 	`json:"name"`
+	Email      		string  `json:"email"`
+}
+
+func CreateRapydCustomer(req *OrderRequest, user *userPb.User) (string, error){
+	hc := http.Client{}
+	form, _ := json.Marshal(CustomerRequest{
+	   	Name: req.Order.Address.FirstName+" "+req.Order.Address.LastName,
+	  	Email: user.Email})
+	http_method := "post"
+	url_path := "/v1/customers"
+	salt := strconv.Itoa(10000000 + rand.Intn(99999999-10000000))
+	timestamp := strconv.Itoa(int(time.Now().Unix()))
+	access_key := os.Getenv("RAPYD_ACCESS_KEY")
+	secret_key := os.Getenv("RAPYD_SECRET_KEY")
+	sign_str := http_method + url_path + salt + timestamp + access_key + secret_key + string(form[:])
+  	h := hmac.New(sha256.New, []byte(secret_key))
+  	h.Write([]byte(sign_str))
+  	buf := h.Sum(nil)
+  	hex := hex.EncodeToString(buf)
+	signature := base64.URLEncoding.EncodeToString([]byte(hex))
+	httpReq, err := http.NewRequest("POST", "https://api.rapyd.net/v1/customers", bytes.NewBuffer(form))
+	// req.PostForm = form
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("access_key", access_key)
+	httpReq.Header.Set("salt", salt)
+	httpReq.Header.Set("signature", signature)
+	httpReq.Header.Set("timestamp", timestamp)
+
+	resp, err := hc.Do(httpReq)
+	if err != nil {
+		fmt.Println(err)
+		return "", errors.New(fmt.Sprintf("customer request failed... %v", err))
+	}
+
+	data, err2 := io.ReadAll(resp.Body)
+	if err2 != nil {
+		fmt.Println(err2)
+		return "", errors.New(fmt.Sprintf("customer body lecture failed... %v", err2))
+	}
+	var result map[string]interface{}
+	json.Unmarshal([]byte(string(data)), &result)
+	status := result["status"].(map[string]interface{})
+	if status["status"] != "SUCCESS" {
+		return "", errors.New(fmt.Sprintf("customer failed... %v", status["message"]))
+	}else{
+		resultData := result["data"].(map[string]interface{})
+		return resultData["id"].(string), nil
+	}
+	resp.Body.Close()
+	return "", err
+}
+
+func GetPayment(paymentId string) (map[string]interface{}, error){
+	hc := http.Client{}
+	http_method := "get"
+	url_path := "/v1/payments/"+paymentId
+	salt := strconv.Itoa(10000000 + rand.Intn(99999999-10000000))
+	timestamp := strconv.Itoa(int(time.Now().Unix()))
+	access_key := os.Getenv("RAPYD_ACCESS_KEY")
+	secret_key := os.Getenv("RAPYD_SECRET_KEY")
+	sign_str := http_method + url_path + salt + timestamp + access_key + secret_key
+  	h := hmac.New(sha256.New, []byte(secret_key))
+  	h.Write([]byte(sign_str))
+  	buf := h.Sum(nil)
+  	hex := hex.EncodeToString(buf)
+	signature := base64.URLEncoding.EncodeToString([]byte(hex))
+	httpReq, err := http.NewRequest("GET", "https://api.rapyd.net/v1/payments/"+paymentId, nil)
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("access_key", access_key)
+	httpReq.Header.Set("salt", salt)
+	httpReq.Header.Set("signature", signature)
+	httpReq.Header.Set("timestamp", timestamp)
+
+	resp, err := hc.Do(httpReq)
+	if err != nil {
+		fmt.Println(err)
+		return make(map[string]interface{}), errors.New(fmt.Sprintf("get payment request failed... %v", err))
+	}
+
+	data, err2 := io.ReadAll(resp.Body)
+	if err2 != nil {
+		fmt.Println(err2)
+		return make(map[string]interface{}), errors.New(fmt.Sprintf("get payment body lecture failed... %v", err2))
+	}
+	var result map[string]interface{}
+	json.Unmarshal([]byte(string(data)), &result)
+	status := result["status"].(map[string]interface{})
+	resultData := result["data"].(map[string]interface{})
+	if status["status"] != "SUCCESS" {
+		return resultData, errors.New(fmt.Sprintf("customer failed... %v", status["message"]))
+	}else{
+		return resultData, nil
+	}
+	resp.Body.Close()
+	return resultData, err
+}
+
 type CardRequest struct {
 	Amount        float32 `json:"amount"`
 	Currency      string  `json:"currency"`
+	Customer      string  `json:"customer"`
 	PaymentMethod PaymentMethod `json:"payment_method"`
+	PaymentMethodOptions PaymentMethodOptions `json:"payment_method_options"`
 	ErrorPaymentURL string `json:"error_payment_url"`
+	CompletePaymentURL string `json:"complete_payment_url"`
 	Capture         bool   `json:"capture"`
+}
+
+type PaymentMethodOptions struct {
+	VeriRequired   bool `json:"3d_required"`
 }
 
 type PaymentMethod struct {
@@ -702,70 +815,94 @@ type Fields struct {
 	Name            string `json:"name"`
 }
 
-func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest) (string, error){
+func (repo *MongoRepository) MakePayment(ctx context.Context, req *OrderRequest, user *userPb.User) (string, string, error){
+	repo.paymentMutex.Lock()
+	defer repo.paymentMutex.Unlock()
+	customerId, err := CreateRapydCustomer(req, user)
+	if err != nil {
+		fmt.Println(err)
+		return "", "", errors.New(fmt.Sprintf("%v", err))
+	}
+	hc := http.Client{}
+	form, _ := json.Marshal(CardRequest{
+	   Amount: req.Order.Total,
+	   Currency: "THB",
+	   Customer: customerId,
+	   PaymentMethodOptions: PaymentMethodOptions{
+	   	   VeriRequired: true,
+	   },
+	   PaymentMethod: PaymentMethod{
+	       Type: "th_visa_card",
+	       Fields: Fields{
+	           Number: req.Card.Number,
+	           ExpirationMonth: req.Card.ExpirationMonth,
+	           ExpirationYear: req.Card.ExpirationYear,
+	           Cvv: req.Card.Cvv,
+	           Name: req.Card.HolderName,
+	       },
+	   },
+	  ErrorPaymentURL: "cleartoo_error_payment",
+	  CompletePaymentURL: "cleartoo_success_payment",
+	  Capture: true})
+	http_method := "post"
+	url_path := "/v1/payments"
+	salt := strconv.Itoa(10000000 + rand.Intn(99999999-10000000))
+	timestamp := strconv.Itoa(int(time.Now().Unix()))
+	access_key := os.Getenv("RAPYD_ACCESS_KEY")
+	secret_key := os.Getenv("RAPYD_SECRET_KEY")
+	sign_str := http_method + url_path + salt + timestamp + access_key + secret_key + string(form[:])
+  	h := hmac.New(sha256.New, []byte(secret_key))
+  	h.Write([]byte(sign_str))
+  	buf := h.Sum(nil)
+  	hex := hex.EncodeToString(buf)
+	signature := base64.URLEncoding.EncodeToString([]byte(hex))
+	httpReq, err := http.NewRequest("POST", "https://api.rapyd.net/v1/payments", bytes.NewBuffer(form))
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("access_key", access_key)
+	httpReq.Header.Set("salt", salt)
+	httpReq.Header.Set("signature", signature)
+	httpReq.Header.Set("timestamp", timestamp)
+
+	resp, err := hc.Do(httpReq)
+	defer resp.Body.Close()
+	if err != nil {
+		fmt.Println(err)
+		return "", "", errors.New(fmt.Sprintf("payment request failed... %v", err))
+	}
+
+	data, err2 := io.ReadAll(resp.Body)
+	if err2 != nil {
+		fmt.Println(err2)
+		return "", "", errors.New(fmt.Sprintf("payment body lecture failed... %v", err2))
+	}
+	var result map[string]interface{}
+	json.Unmarshal([]byte(string(data)), &result)
+	status := result["status"].(map[string]interface{})
+	if status["status"] != "SUCCESS" {
+		return "", "", errors.New(fmt.Sprintf("payment failed... %v", status["error_code"]))
+	}else{
+		resultData := result["data"].(map[string]interface{})
+		if resultData["status"].(string) == "CLO" {
+			return "complete", resultData["id"].(string), nil
+		}else if resultData["status"].(string) == "ACT"{
+			return resultData["redirect_url"].(string), resultData["id"].(string), nil
+		}
+		return "", "", errors.New(fmt.Sprintf("payment failed... %v", resultData["status"]))
+	}
+}
+
+func (repo *MongoRepository) Order(ctx context.Context, req *OrderRequest, user *userPb.User) (string, error){
 	req.Order.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
 	req.Order.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
 	req.Order.ID = primitive.NewObjectID()
 	if req.Order.PaymentMethod == "card" {
-		hc := http.Client{}
-		form, _ := json.Marshal(CardRequest{
-		   Amount: req.Order.Total,
-		   Currency: "THB",
-		   PaymentMethod: PaymentMethod{
-		       Type: "th_visa_card",
-		       Fields: Fields{
-		           Number: req.Card.Number,
-		           ExpirationMonth: req.Card.ExpirationMonth,
-		           ExpirationYear: req.Card.ExpirationYear,
-		           Cvv: req.Card.Cvv,
-		           Name: req.Card.HolderName,
-		       },
-		   },
-		  ErrorPaymentURL: "https://error_example.net",
-		  Capture: true})
-		http_method := "post"
-		url_path := "/v1/payments"
-		salt := strconv.Itoa(10000000 + rand.Intn(99999999-10000000))
-		timestamp := strconv.Itoa(int(time.Now().Unix()))
-		access_key := os.Getenv("RAPYD_ACCESS_KEY")
-		secret_key := os.Getenv("RAPYD_SECRET_KEY")
-		sign_str := http_method + url_path + salt + timestamp + access_key + secret_key + string(form[:])
-	  	h := hmac.New(sha256.New, []byte(secret_key))
-	  	h.Write([]byte(sign_str))
-	  	buf := h.Sum(nil)
-	  	hex := hex.EncodeToString(buf)
-		signature := base64.URLEncoding.EncodeToString([]byte(hex))
-		httpReq, err := http.NewRequest("POST", "https://sandboxapi.rapyd.net/v1/payments", bytes.NewBuffer(form))
-		// req.PostForm = form
-		httpReq.Header.Set("Content-Type", "application/json")
-		httpReq.Header.Set("access_key", access_key)
-		httpReq.Header.Set("salt", salt)
-		httpReq.Header.Set("signature", signature)
-		httpReq.Header.Set("timestamp", timestamp)
-
-		resp, err := hc.Do(httpReq)
+		payment, err := GetPayment(req.Order.PaymentID)
 		if err != nil {
-			fmt.Println(err)
-			return "", errors.New(fmt.Sprintf("payment request failed... %v", err))
+			return "", errors.New(fmt.Sprintf("%v", err))
 		}
-
-		data, err2 := io.ReadAll(resp.Body)
-		if err2 != nil {
-			fmt.Println(err2)
-			return "", errors.New(fmt.Sprintf("payment body lecture failed... %v", err2))
+		if payment["id"].(string) != req.Order.PaymentID || float32(payment["amount"].(float64)) != req.Order.Total || payment["paid"].(bool) != true || payment["status"].(string) != "CLO" {
+			return "", errors.New("card payment failed...")
 		}
-		var result map[string]interface{}
-		json.Unmarshal([]byte(string(data)), &result)
-		status := result["status"].(map[string]interface{})
-		if status["status"] != "SUCCESS" {
-			return "", errors.New(fmt.Sprintf("payment failed... %v", status["message"]))
-		}else{
-			// resultData := result["data"].(map[string]interface{})
-			// if resultData["status"] != "CLO" || resultData["amount"] != req.Order.Total {
-			// 	return "", errors.New(fmt.Sprintf("payment failed... %v", status["message"]))
-			// }
-		}
-		resp.Body.Close()
 	}else if req.Order.PaymentMethod == "wallet" {
 		wallet, err := repo.GetWallet(
 			ctx,
